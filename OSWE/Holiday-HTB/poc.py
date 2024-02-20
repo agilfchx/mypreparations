@@ -87,7 +87,7 @@ def command_injection(command, adm_cookie):
 
 def ip2dec():
     octets = ip.split('.')
-    dec = 00
+    dec = 0
     for i in range(4):
         dec += int(octets[i]) * (256 ** (3 - i))
     return dec
