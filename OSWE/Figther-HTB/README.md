@@ -6,5 +6,5 @@ Identified Vulnerability:
 
 Reverse Shell Payload : [Invoke-PowerShellTcp.ps1](https://github.com/samratashok/nishang/blob/master/Shells/Invoke-PowerShellTcp.ps1)
 ```
-python3 shell.py
+python3 poc.py
 ```
