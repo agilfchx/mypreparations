@@ -1,0 +1,51 @@
+#!/bin/bash
+
+RED='\033[31m'
+GREEN='\033[32m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+# Check if the number of arguments is not equal to 2
+if [ "$#" -ne 2 ]; then
+    echo -e "${RED}Usage: $0 <folder-name> <targets.txt>${NC}"
+    exit 1
+fi
+
+OUTPUT_DIR="$1"
+IP_LIST="$2"
+
+# Check if the output folder exists
+if [ ! -d "$OUTPUT_DIR" ]; then
+    echo -e "${RED}Error: Folder $OUTPUT_DIR does not exist.${NC}"
+    exit 1
+fi
+
+# Check if the IP list file exists
+if [ ! -f "$IP_LIST" ]; then
+    echo -e "${RED}Error: File $IP_LIST does not exist.${NC}"
+    exit 1
+fi
+
+# Scan each IP in the IP list file
+while read -r ip; do
+    echo -e "${BLUE}Scanning all ports for $ip...${NC}"
+
+    # Scan all ports and save the result in Grepable format
+    nmap -p- --max-retries 1 --max-scan-delay 20 -T4 -v -Pn --open -oG "$OUTPUT_DIR/All_$ip.txt" --system-dns --stats-every 3s "$ip"
+
+    # Extract open ports from the scan result
+    open_ports=$(grep -oP '\d+/open' "$OUTPUT_DIR/All_$ip.txt" | cut -d'/' -f1 | tr '\n' ',' | sed 's/,$//')
+
+    if [ ! -z "$open_ports" ]; then
+        echo -e "${GREEN}Open ports for $ip: $open_ports${NC}"
+        echo -e "${BLUE}Running further scan with -sCV on open ports for $ip...${NC}"
+
+        # Scan open ports with -sCV for more detailed information
+        nmap -sCV -p "$open_ports" -Pn --open -oN "$OUTPUT_DIR/Full_Extra_$ip.nmap" --system-dns --stats-every 2s "$ip"
+    else
+        echo -e "${RED}No open ports found for $ip${NC}"
+    fi
+
+done < "$IP_LIST"
+
+echo -e "${GREEN}Scanning complete.${NC}"

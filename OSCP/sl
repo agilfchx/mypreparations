@@ -1,0 +1,14 @@
+#!/bin/bash
+# Automate running python server tools for Linux enum
+
+cd /home/wayman/Tools/Linux || { echo "Directory not found!"; exit 1; }
+
+ls
+    
+port=${1:-80}
+
+echo -e "\n==================================="
+echo " Starting HTTP Server on Port: $port"
+echo "==================================="
+
+python3 -m http.server "$port" 
