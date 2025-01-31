@@ -1,6 +1,6 @@
 #!/bin/bash
 # Automate running python server tools for Linux enum
-
+# Don't forget to change your Windows Tools for PE or anything else
 cd /home/wayman/Tools/Windows || { echo "Directory not found!"; exit 1; }
 
 ls

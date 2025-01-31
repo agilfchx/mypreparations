@@ -9,9 +9,8 @@ for ((i = 1; i <= num_folders; i++)); do
     touch "$folder_name/targets.txt"
     touch "$folder_name/users.txt"
     touch "$folder_name/passwords.txt"
-    touch "$folder_name/interestings.txt"
+    touch "$folder_name/interestings-notes.txt"
     mkdir -p "$folder_name/nmap"
-    mkdir -p "$folder_name/fuzzing"
 
     echo "Folder $folder_name has been created with its files."
 done
@@ -20,6 +19,3 @@ echo "Next step: Run these Nmap commands to each folder:"
 echo "---"
 echo "cd $folder_name"
 echo "auto-nmap <nmap-dir-out> targets.txt"
-
-echo "---"
-echo "auto-dirfuzz <wordlist> <tools> <ip>"

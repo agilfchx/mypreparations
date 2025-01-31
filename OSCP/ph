@@ -1,5 +1,5 @@
 #!/bin/bash
-# Faster python serverr
+# Faster python server
 
 PORT=${1:-80}
 python3 -m http.server $PORT
