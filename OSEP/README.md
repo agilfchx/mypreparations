@@ -15,6 +15,19 @@ Installs all scripts to `/usr/local/bin` — run from anywhere after.
 
 ---
 
+## Configuration — `~/.servepaths`
+
+Required for `serve` script to know where your tools are:
+
+```bash
+LINUX_TOOLS=/path/to/linux/tools
+WINDOWS_TOOLS=/path/to/windows/tools
+```
+
+`serve` auto-creates this file on first run and prompts you to fill it in.
+
+---
+
 ## Scripts
 
 ### Recon

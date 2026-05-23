@@ -8,37 +8,6 @@ YELLOW='\033[33m'
 CYAN='\033[36m'
 NC='\033[0m'
 
-CONFIG="$HOME/.servepaths"
-NOTES_DIR=""
-
-# Load notes dir from config
-if [ -f "$CONFIG" ]; then
-    source "$CONFIG"
-    NOTES_DIR="${NOTES_DIR:-}"
-fi
-
-# Fallback common paths
-if [ -z "$NOTES_DIR" ]; then
-    for p in \
-        "$HOME/Notes" \
-        "$HOME/notes" \
-        "$HOME/Desktop/Notes" \
-        "/opt/notes"
-    do
-        [ -d "$p/CheatSheets" ] && NOTES_DIR="$p" && break
-    done
-fi
-
-CS="$NOTES_DIR/CheatSheets"
-
-ref() {
-    local file="$1"
-    local section="$2"
-    local toolkit="$3"
-    echo -e "  ${BLUE}→ CheatSheets/$file${NC}"
-    [ -n "$section" ] && echo -e "    Section: ${GREEN}$section${NC}"
-    [ -n "$toolkit" ] && echo -e "    Script:  ${CYAN}$toolkit${NC}"
-}
 
 show_all() {
     echo ""
