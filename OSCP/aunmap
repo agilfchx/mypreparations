@@ -1,0 +1,124 @@
+#!/bin/bash
+
+RED='\033[31m'
+GREEN='\033[32m'
+BLUE='\033[34m'
+YELLOW='\033[33m'
+NC='\033[0m'
+
+OUTPUT_DIR="./nmap"
+UDP=false
+
+usage() {
+    echo -e "${RED}Usage: $0 <ip|targets-file> [--udp]${NC}"
+    echo -e "${RED}  Ex:  $0 10.10.10.5${NC}"
+    echo -e "${RED}  Ex:  $0 ips.txt --udp${NC}"
+    exit 1
+}
+
+if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+    usage
+fi
+
+INPUT="$1"
+[ "$2" = "--udp" ] && UDP=true
+
+# Detect: file or single IP
+if [ -f "$INPUT" ]; then
+    mapfile -t TARGETS < "$INPUT"
+else
+    TARGETS=("$INPUT")
+fi
+
+# Auto-create output dir
+mkdir -p "$OUTPUT_DIR"
+
+scan_ip() {
+    local ip="$1"
+
+    # Resume: skip if already scanned
+    if [ -f "$OUTPUT_DIR/All_$ip.txt" ]; then
+        echo -e "${YELLOW}[SKIP] $ip — already scanned${NC}"
+        return
+    fi
+
+    echo -e "${BLUE}[*] Full port scan: $ip${NC}"
+    nmap -p- --max-retries 1 --max-scan-delay 20 -T4 -Pn --open \
+        -oG "$OUTPUT_DIR/All_$ip.txt" --system-dns --stats-every 3s "$ip" \
+        > /dev/null 2>&1
+
+    local open_ports
+    open_ports=$(grep -oP '\d+/open' "$OUTPUT_DIR/All_$ip.txt" | cut -d'/' -f1 | tr '\n' ',' | sed 's/,$//')
+
+    if [ -n "$open_ports" ]; then
+        echo -e "${GREEN}[+] $ip open ports: $open_ports${NC}"
+        nmap -sCV -p "$open_ports" -Pn --open \
+            -oN "$OUTPUT_DIR/Full_Extra_$ip.nmap" --system-dns --stats-every 2s "$ip" \
+            > /dev/null 2>&1
+        echo -e "${GREEN}[+] $ip sCV done${NC}"
+    else
+        echo -e "${RED}[-] $ip no open ports${NC}"
+    fi
+
+    # UDP scan
+    if [ "$UDP" = true ]; then
+        if [ -f "$OUTPUT_DIR/UDP_$ip.txt" ]; then
+            echo -e "${YELLOW}[SKIP] $ip UDP — already scanned${NC}"
+            return
+        fi
+        echo -e "${BLUE}[*] UDP top-100 scan: $ip${NC}"
+        nmap -sU --top-ports 100 -Pn \
+            -oG "$OUTPUT_DIR/UDP_$ip.txt" --system-dns --stats-every 3s "$ip" \
+            > /dev/null 2>&1
+
+        local open_udp
+        open_udp=$(grep -oP '\d+/open' "$OUTPUT_DIR/UDP_$ip.txt" | cut -d'/' -f1 | tr '\n' ',' | sed 's/,$//')
+
+        if [ -n "$open_udp" ]; then
+            echo -e "${GREEN}[+] $ip open UDP: $open_udp${NC}"
+            nmap -sUCV -p "$open_udp" -Pn \
+                -oN "$OUTPUT_DIR/Full_UDP_$ip.nmap" --system-dns --stats-every 2s "$ip" \
+                > /dev/null 2>&1
+            echo -e "${GREEN}[+] $ip UDP sCV done${NC}"
+        else
+            echo -e "${RED}[-] $ip no open UDP ports${NC}"
+        fi
+    fi
+}
+
+# Run all scans in parallel
+for ip in "${TARGETS[@]}"; do
+    [[ -z "$ip" ]] && continue
+    scan_ip "$ip" &
+done
+
+wait
+
+# Summary table + log
+SUMMARY_FILE="$OUTPUT_DIR/summary.txt"
+echo ""
+echo -e "${YELLOW}============ SUMMARY ============${NC}"
+printf "%-20s %-30s %s\n" "IP" "TCP Ports" "UDP Ports"
+printf "%-20s %-30s %s\n" "----" "---------" "---------"
+{
+    printf "%-20s %-30s %s\n" "IP" "TCP Ports" "UDP Ports"
+    printf "%-20s %-30s %s\n" "----" "---------" "---------"
+} > "$SUMMARY_FILE"
+
+for ip in "${TARGETS[@]}"; do
+    [[ -z "$ip" ]] && continue
+    tcp_ports="none"
+    udp_ports="-"
+    if [ -f "$OUTPUT_DIR/All_$ip.txt" ]; then
+        p=$(grep -oP '\d+/open' "$OUTPUT_DIR/All_$ip.txt" | cut -d'/' -f1 | tr '\n' ',' | sed 's/,$//')
+        [ -n "$p" ] && tcp_ports="$p"
+    fi
+    if [ "$UDP" = true ] && [ -f "$OUTPUT_DIR/UDP_$ip.txt" ]; then
+        p=$(grep -oP '\d+/open' "$OUTPUT_DIR/UDP_$ip.txt" | cut -d'/' -f1 | tr '\n' ',' | sed 's/,$//')
+        udp_ports="${p:-none}"
+    fi
+    printf "%-20s %-30s %s\n" "$ip" "$tcp_ports" "$udp_ports"
+    printf "%-20s %-30s %s\n" "$ip" "$tcp_ports" "$udp_ports" >> "$SUMMARY_FILE"
+done
+echo -e "${YELLOW}=================================${NC}"
+echo -e "${YELLOW}[*] Summary saved → $SUMMARY_FILE${NC}"
