@@ -1,0 +1,49 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── SNMP — ENUMERATION ───────────────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Discovery ────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}sudo nmap -sU --open -p 161 192.168.50.1-254${NC}      # find SNMP hosts"
+echo -e "  ${GREEN}nmap -p 161 -sU <TARGET>${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Community String Brute ───────────────────────────${NC}"
+echo -e "  ${GREEN}onesixtyone -c /opt/SecLists/Discovery/SNMP/common-snmp-community-strings.txt <TARGET>${NC}"
+echo -e "  ${GREEN}onesixtyone -c community -i ips${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── snmpwalk ─────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}snmpwalk -c public -v1 -t 10 <TARGET>${NC}             # full walk"
+echo -e "  ${GREEN}snmpwalk -v2c -c public <TARGET>${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Specific MIBs ────────────────────────────────────${NC}"
+echo -e "  ${GREEN}snmpwalk -c public -v1 <TARGET> 1.3.6.1.4.1.77.1.2.25${NC}    # user accounts"
+echo -e "  ${GREEN}snmpwalk -c public -v1 <TARGET> 1.3.6.1.2.1.25.4.2.1.2${NC}   # running programs"
+echo -e "  ${GREEN}snmpwalk -c public -v1 <TARGET> 1.3.6.1.2.1.25.6.3.1.2${NC}   # software installed"
+echo -e "  ${GREEN}snmpwalk -c public -v1 <TARGET> 1.3.6.1.2.1.6.13.1.3${NC}     # TCP listening ports"
+echo -e "  ${GREEN}snmpwalk -c public -v1 <TARGET> 1.3.6.1.2.1.2.2${NC}           # interfaces"
+echo -e "  ${GREEN}snmpwalk -c public -v1 <TARGET> .1.3.6.1.2.1.1.5${NC}          # hostname"
+echo -e "  ${GREEN}snmpwalk -c public -v1 <TARGET> 1.3.6.1.4.1.77.1.2.3.1.1${NC}  # share info"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── MIB Reference ────────────────────────────────────${NC}"
+echo -e "  ${BLUE}1.3.6.1.2.1.25.1.6.0${NC}      System Processes"
+echo -e "  ${BLUE}1.3.6.1.2.1.25.4.2.1.2${NC}    Running Programs"
+echo -e "  ${BLUE}1.3.6.1.2.1.25.4.2.1.4${NC}    Processes Path"
+echo -e "  ${BLUE}1.3.6.1.2.1.25.2.3.1.4${NC}    Storage Units"
+echo -e "  ${BLUE}1.3.6.1.2.1.25.6.3.1.2${NC}    Software Name"
+echo -e "  ${BLUE}1.3.6.1.4.1.77.1.2.25${NC}     User Accounts"
+echo -e "  ${BLUE}1.3.6.1.2.1.6.13.1.3${NC}      TCP Local Ports"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

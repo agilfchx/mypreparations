@@ -1,0 +1,70 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── NMAP — PORT SCANNING & RECON ──────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Quick Scans ──────────────────────────────────────${NC}"
+echo -e "  ${GREEN}nmap <TARGET>${NC}                                    # default scan"
+echo -e "  ${GREEN}nmap -p- --max-retries 1 --max-scan-delay 20 -T4 -v --open -oN nmap/Full.nmap --stats-every 3s <TARGET>${NC}"
+echo -e "  ${GREEN}nmap -sCV -p <PORTS> --open -oN nmap/Services.nmap --stats-every 2s <TARGET>${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Common Port Sets ─────────────────────────────────${NC}"
+echo -e "  ${GREEN}nmap -p 443,8180,8888,1000,80,8080,8000,21,22,2222,3306,445,5985,3389,5986,1433,88 --open -A -oN scan.txt <TARGET>${NC}"
+echo -e "  ${GREEN}sudo nmap -p 53,67,68,69,111,123,161,162,137,138,139,514,1900,5353,500,445 --open -sU <TARGET> -oN scan.txt${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Scan Types ───────────────────────────────────────${NC}"
+echo -e "  ${GREEN}sudo nmap -sS <TARGET>${NC}                           # SYN/stealth (requires root)"
+echo -e "  ${GREEN}nmap -sT <TARGET>${NC}                                # TCP connect"
+echo -e "  ${GREEN}sudo nmap -sU <TARGET>${NC}                           # UDP scan"
+echo -e "  ${GREEN}sudo nmap -sSU <TARGET>${NC}                          # SYN + UDP comprehensive"
+echo -e "  ${GREEN}nmap -sn 192.168.1.1-253${NC}                         # network sweep / ping scan"
+echo -e "  ${GREEN}sudo nmap -O <TARGET> --osscan-guess${NC}             # OS fingerprint"
+echo -e "  ${GREEN}nmap -sT -A <TARGET>${NC}                             # OS + version + scripts + traceroute"
+echo -e "  ${GREEN}nmap -p- -A -T4 -Pn <TARGET> -d${NC}                 # last chance scan"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Key Flags Reference ──────────────────────────────${NC}"
+echo -e "  ${BLUE}-p-${NC}               All 65535 ports"
+echo -e "  ${BLUE}-sS${NC}               SYN/stealth (root required)"
+echo -e "  ${BLUE}-sC${NC}               Default NSE scripts"
+echo -e "  ${BLUE}-sV${NC}               Version detection"
+echo -e "  ${BLUE}-A${NC}                OS + version + scripts + traceroute"
+echo -e "  ${BLUE}-T4${NC}               Aggressive timing"
+echo -e "  ${BLUE}-Pn${NC}               Skip host discovery (treat all as up)"
+echo -e "  ${BLUE}--open${NC}            Show only open ports"
+echo -e "  ${BLUE}-oN file${NC}          Normal output to file"
+echo -e "  ${BLUE}-oX file${NC}          XML output"
+echo -e "  ${BLUE}-oA file${NC}          All formats"
+echo -e "  ${BLUE}--max-retries 1${NC}   Reduce retries (speed)"
+echo -e "  ${BLUE}--stats-every 3s${NC}  Progress updates"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── NSE Scripts ──────────────────────────────────────${NC}"
+echo -e "  ${GREEN}nmap -v -p 139,445 --script smb* <TARGET>${NC}"
+echo -e "  ${GREEN}nmap --script smb-enum-shares -p139,445 -T4 -Pn <TARGET>${NC}"
+echo -e "  ${GREEN}nmap --script smb-enum-users -p139,445 <TARGET>${NC}"
+echo -e "  ${GREEN}nmap --script smb-vuln* -p139,445 <TARGET>${NC}"
+echo -e "  ${GREEN}nmap --script http-enum -p80,443,8080 <TARGET>${NC}"
+echo -e "  ${GREEN}nmap --script ldap* -p389,636 <TARGET>${NC}"
+echo -e "  ${GREEN}nmap --script ldap-rootdse -p389 <TARGET>${NC}"
+echo -e "  ${GREEN}nmap -p 88 --script-args krb5-enum-users.realm='<DOMAIN>',userdb=users.txt <DC_IP>${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Alt Tools ────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}rustscan -a <TARGET> -- -A -sV${NC}                   # fast port scan"
+echo -e "  ${GREEN}rustscan -a <TARGET> -p 80,443,8080 -- -sC${NC}"
+echo -e "  ${GREEN}autorecon <TARGET>${NC}                               # full automated recon"
+echo -e "  ${GREEN}autorecon <TARGET> --output /tmp/autorecon/${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

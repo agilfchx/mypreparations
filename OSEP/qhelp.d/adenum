@@ -1,0 +1,64 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── ACTIVE DIRECTORY — ENUMERATION ──────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── PowerView ────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}Get-NetDomain${NC}"
+echo -e "  ${GREEN}Get-NetUser | select cn,pwdlastset,lastlogon${NC}"
+echo -e "  ${GREEN}Get-NetGroup | select cn${NC}"
+echo -e "  ${GREEN}Get-NetGroupMember 'Domain Admins'${NC}"
+echo -e "  ${GREEN}Get-NetComputer | select cn,operatingsystem,dnshostname${NC}"
+echo -e "  ${GREEN}Find-LocalAdminAccess${NC}"
+echo -e "  ${GREEN}Get-NetSession -ComputerName <HOST> -Verbose${NC}"
+echo -e "  ${GREEN}Find-DomainShare${NC}"
+echo -e "  ${GREEN}Find-DomainShare -ExcludeStandard -ExcludePrint -ExcludeIPC -CheckShareAccess${NC}"
+echo -e "  ${GREEN}Get-DomainUser -SPN${NC}                              # Kerberoastable"
+echo -e "  ${GREEN}Get-DomainUser -PreauthNotRequired${NC}               # AS-REP roastable"
+echo -e "  ${GREEN}Get-DomainComputer -Unconstrained${NC}"
+echo -e "  ${GREEN}Get-DomainComputer -TrustedToAuth${NC}"
+echo -e "  ${GREEN}Get-ObjectAcl -Identity <TARGET> -ResolveGUIDs${NC}"
+echo -e "  ${GREEN}Get-DomainObjectAcl -SamAccountName 'Domain Admins' -ResolveGUIDs | Select IdentityReference,ActiveDirectoryRights${NC}"
+echo -e "  ${GREEN}Find-InterestingDomainAcl | select identityreferencename,activedirectoryrights,acetype,objectdn | ft${NC}"
+echo -e "  ${GREEN}ConvertFrom-SID S-1-5-21-...${NC}"
+echo -e "  ${GREEN}Get-DomainTrust${NC}"
+echo -e "  ${GREEN}Get-DomainTrustMapping${NC}"
+echo -e "  ${GREEN}Get-DomainForeignGroupMember${NC}"
+echo -e "  ${GREEN}Get-ForestDomain${NC}"
+echo -e "  ${GREEN}Get-ForestTrust${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── nxc AD Enum ──────────────────────────────────────${NC}"
+echo -e "  ${GREEN}nxc smb <DC_IP> -u <USER> -p <PASS> --users --groups --shares --pass-pol${NC}"
+echo -e "  ${GREEN}nxc ldap <DC_IP> -u <USER> -p <PASS> --users --active-users --groups${NC}"
+echo -e "  ${GREEN}nxc ldap <DC_IP> -u <USER> -p <PASS> --computers${NC}"
+echo -e "  ${GREEN}nxc ldap <DC_IP> -u <USER> -p <PASS> --find-delegation${NC}"
+echo -e "  ${GREEN}nxc ldap <DC_IP> -u <USER> -p <PASS> --dc-list${NC}"
+echo -e "  ${GREEN}nxc ldap <DC_IP> -u <USER> -p <PASS> --pso${NC}  # password policy objects"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── BloodHound Collection ─────────────────────────────${NC}"
+echo -e "  ${GREEN}nxc ldap <DC_IP> -u <USER> -p <PASS> --bloodhound --collection All -ns <DC_IP>${NC}"
+echo -e "  ${GREEN}bloodhound-ce-python -c all -d <DOMAIN> -ns <DC_IP> -u <USER>@<DOMAIN> -p <PASS>${NC}"
+echo -e "  ${GREEN}Invoke-BloodHound -CollectionMethod All,GPOLocalGroup${NC}"
+echo -e "  ${GREEN}.\\SharpHound.exe -c All -d <DOMAIN> --outputdirectory 'C:\temp\\'${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Kerberos Enumeration ──────────────────────────────${NC}"
+echo -e "  ${GREEN}kerbrute userenum -d <DOMAIN> users.txt --dc <DC_IP>${NC}"
+echo -e "  ${GREEN}nmap -p 88 --script-args krb5-enum-users.realm='<DOMAIN>',userdb=users.txt <DC_IP>${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Domain Trust — Child to Parent ───────────────────${NC}"
+echo -e "  ${GREEN}raiseChild.py <CHILD_DOMAIN>/testAdmin -hashes ':<NT_HASH>'${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

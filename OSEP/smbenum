@@ -1,0 +1,47 @@
+#!/bin/bash
+
+RED='\033[31m'
+GREEN='\033[32m'
+BLUE='\033[34m'
+YELLOW='\033[33m'
+CYAN='\033[36m'
+NC='\033[0m'
+
+usage() {
+    echo -e "${RED}Usage: smbenum <ip> [user] [pass]${NC}"
+    echo -e "${RED}  smbenum 10.10.10.5                   # null session${NC}"
+    echo -e "${RED}  smbenum 10.10.10.5 guest ''          # guest${NC}"
+    echo -e "${RED}  smbenum 10.10.10.5 admin Password123 # creds${NC}"
+    exit 1
+}
+
+[ "$#" -lt 1 ] && usage
+
+IP="$1"
+USER="${2:-''}"
+PASS="${3:-''}"
+
+run_nxc() {
+    nxc smb "$IP" -u "$USER" -p "$PASS" "$@" 2>/dev/null
+}
+
+echo ""
+echo -e "${YELLOW}== SMB Enumeration: $IP ==${NC}"
+
+echo -e "\n${CYAN}[shares]${NC}"
+run_nxc --shares | grep -E 'READ|WRITE|Disk' | awk '{print $5, $6, $7}' | sed 's/^ *//'
+
+echo -e "\n${CYAN}[users]${NC}"
+run_nxc --users | grep -oP '\b[a-zA-Z0-9._-]+\s' | grep -v 'SMB\|nxc\|Running' | sed 's/^ *//'
+
+echo -e "\n${CYAN}[groups]${NC}"
+run_nxc --groups | grep -oP 'Groupname:.*' | sed 's/Groupname: //'
+
+echo -e "\n${CYAN}[password policy]${NC}"
+run_nxc --pass-pol | grep -E 'Minimum|Maximum|Lockout|complexity' | sed 's/^ *//'
+
+echo -e "\n${CYAN}[rid brute]${NC}"
+nxc smb "$IP" -u "$USER" -p "$PASS" --rid-brute 2>/dev/null | grep SidTypeUser | awk '{print $6}' | cut -d'\' -f2
+
+echo ""
+echo -e "${YELLOW}=================================${NC}"

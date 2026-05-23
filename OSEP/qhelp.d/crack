@@ -1,0 +1,64 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── HASH CRACKING — QUICK REFERENCE ─────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Identify First ───────────────────────────────────${NC}"
+echo -e "  ${GREEN}hashid -m '<hash>'${NC}                  # identifies type + hashcat mode"
+echo -e "  ${GREEN}hash-identifier${NC}                     # interactive"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Mode Cheatsheet ──────────────────────────────────${NC}"
+echo -e "  ${GREEN}1000${NC}     # NTLM (Windows local/domain)"
+echo -e "  ${GREEN}5600${NC}     # NetNTLMv2 (Responder capture)"
+echo -e "  ${GREEN}5500${NC}     # NetNTLMv1"
+echo -e "  ${GREEN}13100${NC}    # Kerberoast RC4 (TGS \$krb5tgs\$23\$)"
+echo -e "  ${GREEN}19700${NC}    # Kerberoast AES-128 (\$krb5tgs\$17\$)"
+echo -e "  ${GREEN}19800${NC}    # Kerberoast AES-256 (\$krb5tgs\$18\$)"
+echo -e "  ${GREEN}18200${NC}    # AS-REP Roast (\$krb5asrep\$23\$)"
+echo -e "  ${GREEN}2100${NC}     # MS-CacheV2 / DCC2 (\$DCC2\$)"
+echo -e "  ${GREEN}1800${NC}     # sha512crypt \$6\$ (Linux shadow)"
+echo -e "  ${GREEN}7400${NC}     # sha256crypt \$5\$ (Linux shadow)"
+echo -e "  ${GREEN}500${NC}      # md5crypt \$1\$ (Linux shadow)"
+echo -e "  ${GREEN}3200${NC}     # bcrypt \$2y\$ / \$2a\$"
+echo -e "  ${GREEN}0${NC}        # MD5"
+echo -e "  ${GREEN}100${NC}      # SHA1"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Hashcat Recipes ──────────────────────────────────${NC}"
+echo -e "  Note: Dictionary + rules — most effective:"
+echo -e "  ${GREEN}hashcat -m 1000 hash.txt rockyou.txt -r /usr/share/hashcat/rules/best64.rule${NC}"
+echo -e "  ${GREEN}hashcat -m 1000 hash.txt rockyou.txt -r /usr/share/hashcat/rules/rockyou-30000.rule${NC}"
+printf "\n"
+echo -e "  Note: Mask brute-force:"
+echo -e "  ${GREEN}hashcat -m 1000 -a 3 hash.txt '?u?l?l?l?d?d?d?d'${NC}    # e.g. Pass1234"
+echo -e "  ${GREEN}hashcat -m 1000 -a 3 hash.txt '?a?a?a?a?a?a?a?a'${NC}    # 8-char any"
+printf "\n"
+echo -e "  Note: Show cracked:"
+echo -e "  ${GREEN}hashcat -m 1000 hash.txt --show${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── John Quick Hits ──────────────────────────────────${NC}"
+echo -e "  ${GREEN}john hash.txt --wordlist=rockyou.txt${NC}"
+echo -e "  ${GREEN}john hash.txt --format=NT --wordlist=rockyou.txt${NC}"
+echo -e "  ${GREEN}john --show hash.txt${NC}"
+echo -e "  ${GREEN}ssh2john id_rsa > id_rsa.hash && john id_rsa.hash --wordlist=rockyou.txt${NC}"
+echo -e "  ${GREEN}zip2john file.zip > z.hash && john z.hash --wordlist=rockyou.txt${NC}"
+echo -e "  ${GREEN}keepass2john db.kdbx > kp.hash && john kp.hash --wordlist=rockyou.txt${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Extract NT hash from secretsdump ─────────────────${NC}"
+echo -e "  Note: Format: user:RID:LMhash:NThash::: — take field 4"
+echo -e "  ${GREEN}awk -F: '{print \$4}' ntds.txt > ntlm.txt${NC}"
+echo -e "  ${GREEN}hashcat -m 1000 ntlm.txt rockyou.txt${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

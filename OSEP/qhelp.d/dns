@@ -1,0 +1,43 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── DNS — ENUMERATION & ZONE TRANSFER ────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Manual Queries ───────────────────────────────────${NC}"
+echo -e "  ${GREEN}host www.megacorpone.com${NC}                                 # A record"
+echo -e "  ${GREEN}host -t mx megacorpone.com${NC}                               # MX record"
+echo -e "  ${GREEN}host -t txt megacorpone.com${NC}                              # TXT record"
+echo -e "  ${GREEN}dig @<DNS_SERVER> <DOMAIN> A${NC}"
+echo -e "  ${GREEN}dig @<DNS_SERVER> <DOMAIN> MX${NC}"
+echo -e "  ${GREEN}dig @<DNS_SERVER> <DOMAIN> TXT${NC}"
+echo -e "  ${GREEN}dig @<DNS_SERVER> <DOMAIN> NS${NC}"
+echo -e "  ${GREEN}dig @<DNS_SERVER> <DOMAIN> ANY${NC}"
+echo -e "  ${GREEN}dig axfr <DOMAIN> @<DNS_SERVER>${NC}                          # zone transfer"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Windows ──────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}nslookup mail.megacorptwo.com${NC}"
+echo -e "  ${GREEN}nslookup -type=TXT info.megacorptwo.com 192.168.50.151${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Automation ───────────────────────────────────────${NC}"
+echo -e "  ${GREEN}python3 dnsrecon.py -d megacorpone.com -t std${NC}            # standard enum"
+echo -e "  ${GREEN}python3 dnsrecon.py -d megacorpone.com -D ~/list.txt -t brt${NC}  # brute force"
+echo -e "  ${GREEN}dnsenum megacorpone.com${NC}                                  # full enum"
+echo -e "  ${GREEN}gobuster dns -d <DOMAIN> -w /usr/share/wordlists/SecLists/Discovery/DNS/subdomains-top1million-5000.txt${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Nmap ─────────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}nmap -p 53 --script dns-zone-transfer --script-args 'dns-zone-transfer.domain=<DOMAIN>' <TARGET>${NC}"
+echo -e "  ${GREEN}nmap -p 53 --script dns-brute --script-args 'dns-brute.domain=<DOMAIN>' <TARGET>${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

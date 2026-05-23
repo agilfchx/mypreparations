@@ -1,0 +1,96 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── BLOODHOUND ────────────────────────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Collection ───────────────────────────────────────${NC}"
+echo -e "  ${GREEN}nxc ldap <DC_IP> -u <USER> -p <PASS> --bloodhound -ns <DC_IP> -c All${NC}"
+echo -e "  ${GREEN}nxc ldap <DC_IP> -u <USER> -p <PASS> -d <DOMAIN> --bloodhound -ns <DC_IP> -c All,GPOLocalGroup${NC}"
+echo -e "  ${GREEN}bloodhound-ce-python -c all -d target.com -ns <DC_IP> -u user@target.com -p pass${NC}"
+echo -e "  ${GREEN}bloodhound-ce-python -c all -d target.com -ns <DC_IP> -u user@target.com -k -no-pass${NC}  # Kerberos"
+echo -e "  ${GREEN}.\\SharpHound.exe -c All -d offense.local --outputdirectory 'C:\\temp\\'${NC}"
+echo -e "  ${GREEN}Invoke-BloodHound -CollectionMethod All,GPOLocalGroup${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Startup (BloodHound CE) ──────────────────────────${NC}"
+echo -e "  ${GREEN}docker-compose up -d${NC}                 # http://localhost:8080  admin/changeme"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Cypher Queries — Paths to DA ─────────────────────${NC}"
+echo -e "  Note: Shortest path to DA (any node):"
+echo -e '  ${GREEN}MATCH p=shortestPath((n)-[*1..]->(m:Group {name:"DOMAIN ADMINS@DOMAIN.LOCAL"})) RETURN p${NC}'
+printf "\n"
+echo -e "  Note: All paths from owned -> DA:"
+echo -e '  ${GREEN}MATCH p=allShortestPaths((u:User {owned:true})-[*1..]->(g:Group {name:"DOMAIN ADMINS@DOMAIN.LOCAL"})) RETURN p${NC}'
+printf "\n"
+echo -e "  Note: Owned -> any High Value:"
+echo -e "  ${GREEN}MATCH p=shortestPath((n {owned:true})-[*1..]->(m {highvalue:true})) WHERE n<>m RETURN p${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Users ─────────────────────────────────────────────${NC}"
+echo -e "  Note: Kerberoastable + admin rights:"
+echo -e '  ${GREEN}MATCH (u:User {hasspn:true}),(g:Group) WHERE g.name CONTAINS "ADMIN" MATCH (u)-[:MemberOf*1..]->(g) RETURN u.name,g.name${NC}'
+printf "\n"
+echo -e "  Note: AS-REP roastable (enabled):"
+echo -e "  ${GREEN}MATCH (u:User {dontreqpreauth:true,enabled:true}) RETURN u.name ORDER BY u.name${NC}"
+printf "\n"
+echo -e "  Note: Password never expires (enabled):"
+echo -e "  ${GREEN}MATCH (u:User {pwdneverexpires:true,enabled:true}) RETURN u.name ORDER BY u.name${NC}"
+printf "\n"
+echo -e "  Note: Password not required:"
+echo -e "  ${GREEN}MATCH (u:User {passwordnotreqd:true}) RETURN u.name${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Computers & Delegation ───────────────────────────${NC}"
+echo -e "  Note: Unconstrained delegation (non-DC):"
+echo -e '  ${GREEN}MATCH (c:Computer {unconstraineddelegation:true}) WHERE NOT c.name CONTAINS "DC" RETURN c.name${NC}'
+printf "\n"
+echo -e "  Note: Constrained delegation targets:"
+echo -e "  ${GREEN}MATCH (u)-[:AllowedToDelegate]->(c:Computer) RETURN u.name,c.name${NC}"
+printf "\n"
+echo -e "  Note: LAPS enabled/disabled:"
+echo -e "  ${GREEN}MATCH (c:Computer {haslaps:true}) RETURN c.name${NC}"
+echo -e "  ${GREEN}MATCH (c:Computer {haslaps:false}) RETURN c.name${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── ACL / DACL Abuse ─────────────────────────────────${NC}"
+echo -e "  Note: GenericAll on DA group:"
+echo -e '  ${GREEN}MATCH p=(n)-[:GenericAll]->(g:Group {name:"DOMAIN ADMINS@DOMAIN.LOCAL"}) RETURN p${NC}'
+printf "\n"
+echo -e "  Note: DCSync rights:"
+echo -e "  ${GREEN}MATCH (n)-[r:DCSync|AllExtendedRights|GenericAll]->(d:Domain) RETURN n.name,type(r)${NC}"
+printf "\n"
+echo -e "  Note: All ACL edges from owned:"
+echo -e "  ${GREEN}MATCH p=(n {owned:true})-[r:GenericAll|GenericWrite|WriteOwner|WriteDacl|AllExtendedRights|AddMember|ForceChangePassword]->(m) RETURN p${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Sessions & Local Admin ────────────────────────────${NC}"
+echo -e "  Note: Where can owned user admin?"
+echo -e "  ${GREEN}MATCH (u:User {owned:true})-[:AdminTo]->(c:Computer) RETURN u.name,c.name${NC}"
+printf "\n"
+echo -e "  Note: Where are DAs logged in?"
+echo -e '  ${GREEN}MATCH (u:User)-[:MemberOf*1..]->(g:Group {name:"DOMAIN ADMINS@DOMAIN.LOCAL"}) MATCH (u)<-[:HasSession]-(c:Computer) RETURN u.name,c.name${NC}'
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Mark Owned ───────────────────────────────────────${NC}"
+echo -e '  ${GREEN}MATCH (u:User {name:"USER@DOMAIN.LOCAL"}) SET u.owned=true RETURN u${NC}'
+echo -e '  ${GREEN}MATCH (c:Computer {name:"PC01@DOMAIN.LOCAL"}) SET c.owned=true RETURN c${NC}'
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── PowerView Complement ─────────────────────────────${NC}"
+echo -e "  ${GREEN}Get-DomainGroupMember -Identity 'Domain Admins'${NC}"
+echo -e "  ${GREEN}Find-LocalAdminAccess${NC}"
+echo -e "  ${GREEN}Find-InterestingDomainAcl | select identityreferencename,activedirectoryrights,acetype,objectdn | ft${NC}"
+printf "\n"
+echo -e "  Note: Refs: CompassSecurity/BloodHoundQueries  SpecterOps/BloodHoundQueryLibrary  y0k4i-1337/BloodHound-Queries"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

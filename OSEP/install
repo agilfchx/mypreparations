@@ -1,0 +1,20 @@
+#!/bin/bash
+
+RED='\033[31m'
+GREEN='\033[32m'
+NC='\033[0m'
+
+SCRIPTS=("aunmap" "serve" "loot" "toolkit" "smbenum" "adenum" "crack" "spray" "ligolo" "adcsenum" "lapsread" "msfshell" "genpayload" "dcsync" "hoaxshell" "pth" "mssqlshell" "qhelp")
+DEST="/usr/local/bin"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+for script in "${SCRIPTS[@]}"; do
+    src="$DIR/$script"
+    if [ ! -f "$src" ]; then
+        echo -e "${RED}[!] Not found: $src${NC}"
+        continue
+    fi
+    cp "$src" "$DEST/$script"
+    chmod +x "$DEST/$script"
+    echo -e "${GREEN}[+] Installed: $DEST/$script${NC}"
+done

