@@ -42,13 +42,22 @@ scan_ip() {
         return
     fi
 
-    echo -e "${BLUE}[*] Full port scan: $ip${NC}"
-    nmap -p- --max-retries 1 --max-scan-delay 20 -T4 -Pn --open \
-        -oG "$OUTPUT_DIR/All_$ip.txt" --system-dns --stats-every 3s "$ip" \
-        > /dev/null 2>&1
-
     local open_ports
-    open_ports=$(grep -oP '\d+/open' "$OUTPUT_DIR/All_$ip.txt" | cut -d'/' -f1 | tr '\n' ',' | sed 's/,$//')
+    if command -v rustscan &>/dev/null; then
+        echo -e "${BLUE}[*] Port discovery (rustscan): $ip${NC}"
+        open_ports=$(rustscan -a "$ip" -b 500 --scripts none 2>/dev/null \
+            | grep -oE '\[[0-9,]+\]' | tr -d '[]' | tail -1)
+    else
+        echo -e "${BLUE}[*] Port discovery (nmap): $ip${NC}"
+        nmap -p- --max-retries 1 --max-scan-delay 20 -T4 -Pn --open \
+            -oG "$OUTPUT_DIR/All_$ip.txt" --system-dns --stats-every 3s "$ip" \
+            > /dev/null 2>&1
+        open_ports=$(grep -oE '[0-9]+/open' "$OUTPUT_DIR/All_$ip.txt" \
+            | cut -d'/' -f1 | tr '\n' ',' | sed 's/,$//')
+    fi
+
+    # Save placeholder for resume detection
+    echo "discovery done for $ip — ports: $open_ports" > "$OUTPUT_DIR/All_$ip.txt"
 
     if [ -n "$open_ports" ]; then
         echo -e "${GREEN}[+] $ip open ports: $open_ports${NC}"
@@ -72,7 +81,7 @@ scan_ip() {
             > /dev/null 2>&1
 
         local open_udp
-        open_udp=$(grep -oP '\d+/open' "$OUTPUT_DIR/UDP_$ip.txt" | cut -d'/' -f1 | tr '\n' ',' | sed 's/,$//')
+        open_udp=$(grep -oE '[0-9]+/open' "$OUTPUT_DIR/UDP_$ip.txt" | cut -d'/' -f1 | tr '\n' ',' | sed 's/,$//')
 
         if [ -n "$open_udp" ]; then
             echo -e "${GREEN}[+] $ip open UDP: $open_udp${NC}"
@@ -110,11 +119,11 @@ for ip in "${TARGETS[@]}"; do
     tcp_ports="none"
     udp_ports="-"
     if [ -f "$OUTPUT_DIR/All_$ip.txt" ]; then
-        p=$(grep -oP '\d+/open' "$OUTPUT_DIR/All_$ip.txt" | cut -d'/' -f1 | tr '\n' ',' | sed 's/,$//')
+        p=$(grep -oE 'ports: [0-9,]+' "$OUTPUT_DIR/All_$ip.txt" | cut -d' ' -f2)
         [ -n "$p" ] && tcp_ports="$p"
     fi
     if [ "$UDP" = true ] && [ -f "$OUTPUT_DIR/UDP_$ip.txt" ]; then
-        p=$(grep -oP '\d+/open' "$OUTPUT_DIR/UDP_$ip.txt" | cut -d'/' -f1 | tr '\n' ',' | sed 's/,$//')
+        p=$(grep -oE '[0-9]+/open' "$OUTPUT_DIR/UDP_$ip.txt" | cut -d'/' -f1 | tr '\n' ',' | sed 's/,$//')
         udp_ports="${p:-none}"
     fi
     printf "%-20s %-30s %s\n" "$ip" "$tcp_ports" "$udp_ports"
